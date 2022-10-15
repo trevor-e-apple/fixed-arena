@@ -1,5 +1,8 @@
 use core::{cell::Cell, ptr};
-use std::alloc::{alloc, dealloc, Layout, LayoutError};
+use std::{
+    alloc::{alloc, dealloc, Layout, LayoutError},
+    slice,
+};
 
 pub struct FixedArena {
     base: *mut u8,
@@ -12,6 +15,7 @@ pub enum AllocError {
     AtCapacity,
 }
 
+// TODO: inline functions?
 impl FixedArena {
     // TODO: document me
     pub fn with_capacity(capacity: usize) -> Result<FixedArena, LayoutError> {
@@ -25,19 +29,35 @@ impl FixedArena {
         })
     }
 
-    // TODO: initialize with given base
+    // TODO: document me
+    pub fn with_base(base: *mut u8, capacity: usize) -> FixedArena {
+        FixedArena {
+            base,
+            used: Cell::new(0),
+            capacity,
+        }
+    }
 
     // TODO: document me
-    fn get_alloc_ptr<T>(&self) -> Result<(*mut u8, Layout), AllocError> {
-        let layout = Layout::new::<T>();
+    fn get_alloc_ptr_with_layout(
+        &self,
+        layout: Layout,
+    ) -> Result<*mut u8, AllocError> {
         let result: *mut u8 =
             unsafe { self.base.offset(self.used.get() as isize) };
         self.used.set(self.used.get() + layout.size());
         if self.used.get() <= self.capacity {
-            Ok((result, layout))
+            Ok(result)
         } else {
             Err(AllocError::AtCapacity)
         }
+    }
+
+    // TODO: document me
+    fn get_alloc_ptr<T>(&self) -> Result<(*mut u8, Layout), AllocError> {
+        let layout = Layout::new::<T>();
+        let pointer = self.get_alloc_ptr_with_layout(layout)?;
+        Ok((pointer, layout))
     }
 
     // TODO: document me
@@ -60,6 +80,19 @@ impl FixedArena {
         }
     }
 
+    // TODO: more documentation, examples
+    /// Allocs an array of T. The size of the array is count.
+    /// The data in the array is uninitialized
+    pub fn alloc_array<T>(&self, count: usize) -> Result<&mut [T], AllocError> {
+        let layout =
+            Layout::array::<T>(count).expect("Bad count value for array");
+        let pointer = self.get_alloc_ptr_with_layout(layout)?;
+        unsafe {
+            let result = slice::from_raw_parts_mut(pointer as *mut T, count);
+            Ok(result)
+        }
+    }
+
     /// Because the alloc method immutably borrows self and reset mutably
     /// borrows self, a call to reset will invalidate all previous values that
     /// were allocated using the alloc method. This is because Rust will not
@@ -72,6 +105,7 @@ impl FixedArena {
 }
 
 impl Drop for FixedArena {
+    // TODO: document me
     fn drop(&mut self) {
         // TODO: remove magic alignment
         let layout =
@@ -82,6 +116,7 @@ impl Drop for FixedArena {
     }
 }
 
+// TODO: move this to the tests directory?
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,6 +158,7 @@ mod tests {
         h: u8,
     }
 
+    // TODO: document me
     #[test]
     fn test_basic_allocation() {
         let arena = FixedArena::with_capacity(1024).unwrap();
@@ -133,6 +169,13 @@ mod tests {
         }
     }
 
+    // TODO: document me
+    #[test]
+    fn test_init_with_base() {
+        todo!();
+    }
+
+    // TODO: document me
     #[test]
     fn test_reset() {
         let mut arena = FixedArena::with_capacity(1024).unwrap();
@@ -149,6 +192,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_reset_with_mut() {
         let mut arena = FixedArena::with_capacity(1024).unwrap();
@@ -171,6 +215,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_alloc_zeroed() {
         let arena = FixedArena::with_capacity(1024).unwrap();
@@ -181,11 +226,13 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_alignment() {
         todo!();
     }
 
+    // TODO: document me
     #[test]
     fn test_multiple_allocation() {
         let arena = FixedArena::with_capacity(1024).unwrap();
@@ -201,6 +248,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_reset_in_loop() {
         let capacity = 1024;
@@ -223,6 +271,7 @@ mod tests {
         result
     }
 
+    // TODO: document me
     #[test]
     fn test_mixed_allocation() {
         let arena = FixedArena::with_capacity(1024).unwrap();
@@ -264,6 +313,7 @@ mod tests {
         assert!(fifth == *fifth_result);
     }
 
+    // TODO: document me
     #[test]
     fn test_at_capacity() {
         let capacity = 1024;
@@ -276,6 +326,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_reset_at_capacity() {
         let capacity = 1024;
@@ -298,6 +349,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     #[should_panic]
     fn test_over_capacity() {
@@ -310,6 +362,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_at_capacity_alloc_zeroed() {
         let capacity = 1024;
@@ -322,6 +375,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_reset_at_capacity_alloc_zeroed() {
         let capacity = 1024;
@@ -344,6 +398,7 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     #[should_panic]
     fn test_over_capacity_alloc_zeroed() {
@@ -356,21 +411,63 @@ mod tests {
         }
     }
 
+    // TODO: document me
     #[test]
     fn test_alloc_array() {
+        let capacity = 1024;
+        let arena = FixedArena::with_capacity(capacity).unwrap();
+        let test_array = arena.alloc_array::<TestStruct>(8).unwrap();
+        for test_value in test_array {
+            test_value.x = 1.0;
+            test_value.y = -1.0;
+        }
+    }
+
+    // TODO: document me
+    #[test]
+    fn test_alloc_multiple_arrays() {
         todo!();
     }
 
+    // TODO: document me
+    #[test]
+    fn test_alloc_array_to_capacity() {
+        let capacity = 1024;
+        let arena = FixedArena::with_capacity(capacity).unwrap();
+        let test_array = arena
+            .alloc_array::<TestStruct>(capacity / size_of::<TestStruct>())
+            .unwrap();
+
+        // just in case we change the TestStruct def, be sure that we actually
+        // test to the complete capacity of the arena
+        assert_eq!(capacity % size_of::<TestStruct>(), 0);
+        
+        for test_value in test_array {
+            test_value.x = 1.0;
+            test_value.y = -1.0;
+        }
+    }
+
+    // TODO: document me
+    #[test]
+    #[should_panic]
+    fn test_alloc_array_over_capacity() {
+        unimplemented!();
+    }
+
+    // TODO: document me
     #[test]
     fn test_alloc_string() {
         todo!();
     }
 
+    // TODO: document me
     #[test]
     fn test_async() {
         todo!();
     }
 
+    // TODO: document me
     #[test]
     fn test_threading() {
         todo!();
