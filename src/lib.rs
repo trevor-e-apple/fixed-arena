@@ -80,10 +80,56 @@ impl FixedArena {
         }
     }
 
+    // TODO: document me
+    /// alloc_array does perform a cast from usize to isize, and will panic if
+    /// the coutn value does not fit in isize
+    pub fn alloc_array<T>(
+        &self,
+        val: T,
+        count: usize,
+    ) -> Result<&mut [T], AllocError>
+    where
+        T: Clone,
+    {
+        let layout =
+            Layout::array::<T>(count).expect("Bad count value for array");
+        let pointer = self.get_alloc_ptr_with_layout(layout)?;
+
+        let result: &mut [T];
+        unsafe {
+            let pointer = pointer as *mut T;
+            let isize_count = count as isize;
+            for index in 0..isize_count {
+                ptr::write(pointer.offset(index), val.clone());
+            }
+            result = slice::from_raw_parts_mut(pointer as *mut T, count);
+        }
+
+        Ok(result)
+    }
+
+    // TODO: document me
+    pub fn alloc_zeroed_array<T>(
+        &self,
+        count: usize,
+    ) -> Result<&mut [T], AllocError> {
+        let layout =
+            Layout::array::<T>(count).expect("Bad count value for array");
+        let pointer = self.get_alloc_ptr_with_layout(layout)?;
+        unsafe {
+            ptr::write_bytes(pointer as *mut T, 0, count);
+            let result = slice::from_raw_parts_mut(pointer as *mut T, count);
+            Ok(result)
+        }
+    }
+
     // TODO: more documentation, examples
     /// Allocs an array of T. The size of the array is count.
     /// The data in the array is uninitialized
-    pub fn alloc_array<T>(&self, count: usize) -> Result<&mut [T], AllocError> {
+    pub fn alloc_uninitialized_array<T>(
+        &self,
+        count: usize,
+    ) -> Result<&mut [T], AllocError> {
         let layout =
             Layout::array::<T>(count).expect("Bad count value for array");
         let pointer = self.get_alloc_ptr_with_layout(layout)?;
@@ -431,7 +477,8 @@ mod tests {
     fn test_alloc_array() {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
-        let test_array = arena.alloc_array::<TestStruct>(8).unwrap();
+        let test_array =
+            arena.alloc_array(TestStruct { x: 0.0, y: 0.0 }, 8).unwrap();
         for test_value in test_array {
             test_value.x = 1.0;
             test_value.y = -1.0;
@@ -444,8 +491,10 @@ mod tests {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
         let count = capacity / (2 * size_of::<I32Struct>());
-        let test_array_one = arena.alloc_array::<I32Struct>(count).unwrap();
-        let test_array_two = arena.alloc_array::<I32Struct>(count).unwrap();
+        let test_array_one =
+            arena.alloc_array(I32Struct { x: 0, y: 0 }, count).unwrap();
+        let test_array_two =
+            arena.alloc_array(I32Struct { x: 0, y: 0 }, count).unwrap();
 
         const ARRAY_ONE_X_VALUE: i32 = 0x7FFFFFFF;
         const ARRAY_ONE_Y_VALUE: i32 = -1;
@@ -493,7 +542,10 @@ mod tests {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
         let test_array = arena
-            .alloc_array::<TestStruct>(capacity / size_of::<TestStruct>())
+            .alloc_array(
+                TestStruct { x: 0.0, y: 1.0 },
+                capacity / size_of::<TestStruct>(),
+            )
             .unwrap();
 
         // just in case we change the TestStruct def, be sure that we actually
@@ -511,12 +563,54 @@ mod tests {
     fn test_alloc_array_over_capacity() {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
-        let result = arena
-            .alloc_array::<TestStruct>(capacity / size_of::<TestStruct>() + 1);
+        let result = arena.alloc_array(
+            TestStruct { x: 0.0, y: 0.0 },
+            capacity / size_of::<TestStruct>() + 1,
+        );
         match result {
             Ok(_) => assert!(false),
             Err(err) => assert_eq!(err, AllocError::AtCapacity),
         };
+    }
+
+    #[test]
+    fn test_alloc_zeroed_array() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_multiple_zeroed_array() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_zeroed_array_at_capacity() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_zeroed_array_over_capacity() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_unitialized_array() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_multiple_unitialized_array() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_unitialized_array_at_capacity() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_unitialized_array_over_capacity() {
+        todo!();
     }
 
     // TODO: document me
