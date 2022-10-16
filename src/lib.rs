@@ -10,7 +10,7 @@ pub struct FixedArena {
     capacity: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AllocError {
     AtCapacity,
 }
@@ -357,15 +357,19 @@ mod tests {
 
     // TODO: document me
     #[test]
-    #[should_panic]
     fn test_over_capacity() {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..capacity {
+        let count = capacity / size_of::<TestStruct>();
+        for index in 0..count {
             let mut test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
             test.x = 15.0;
             test.y = test.x + (index as f32);
         }
+        match arena.alloc(TestStruct { x: 0.0, y: 0.0 }) {
+            Ok(_) => assert!(false),
+            Err(err) => assert_eq!(err, AllocError::AtCapacity),
+        };
     }
 
     // TODO: document me
@@ -406,15 +410,20 @@ mod tests {
 
     // TODO: document me
     #[test]
-    #[should_panic]
     fn test_over_capacity_alloc_zeroed() {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..capacity {
+        let count = capacity / size_of::<TestStruct>();
+        for index in 0..count {
             let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
             test.x = 15.0;
             test.y = test.x + (index as f32);
         }
+
+        match arena.alloc_zeroed::<TestStruct>() {
+            Ok(_) => assert!(false),
+            Err(err) => assert_eq!(err, AllocError::AtCapacity),
+        };
     }
 
     // TODO: document me
@@ -435,12 +444,8 @@ mod tests {
         let capacity = 1024;
         let arena = FixedArena::with_capacity(capacity).unwrap();
         let count = capacity / (2 * size_of::<I32Struct>());
-        let test_array_one = arena
-            .alloc_array::<I32Struct>(count)
-            .unwrap();
-        let test_array_two = arena
-            .alloc_array::<I32Struct>(count)
-            .unwrap();
+        let test_array_one = arena.alloc_array::<I32Struct>(count).unwrap();
+        let test_array_two = arena.alloc_array::<I32Struct>(count).unwrap();
 
         const ARRAY_ONE_X_VALUE: i32 = 0x7FFFFFFF;
         const ARRAY_ONE_Y_VALUE: i32 = -1;
@@ -494,7 +499,7 @@ mod tests {
         // just in case we change the TestStruct def, be sure that we actually
         // test to the complete capacity of the arena
         assert_eq!(capacity % size_of::<TestStruct>(), 0);
-        
+
         for test_value in test_array {
             test_value.x = 1.0;
             test_value.y = -1.0;
@@ -503,9 +508,15 @@ mod tests {
 
     // TODO: document me
     #[test]
-    #[should_panic]
     fn test_alloc_array_over_capacity() {
-        unimplemented!();
+        let capacity = 1024;
+        let arena = FixedArena::with_capacity(capacity).unwrap();
+        let result = arena
+            .alloc_array::<TestStruct>(capacity / size_of::<TestStruct>() + 1);
+        match result {
+            Ok(_) => assert!(false),
+            Err(err) => assert_eq!(err, AllocError::AtCapacity),
+        };
     }
 
     // TODO: document me
