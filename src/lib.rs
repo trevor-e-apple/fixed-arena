@@ -574,6 +574,11 @@ mod tests {
     }
 
     #[test]
+    fn test_alloc_array_to_capacity_reset() {
+        todo!();
+    }
+
+    #[test]
     fn test_alloc_zeroed_array() {
         todo!();
     }
@@ -594,6 +599,11 @@ mod tests {
     }
 
     #[test]
+    fn test_alloc_zeroed_array_to_capacity_reset() {
+        todo!();
+    }
+
+    #[test]
     fn test_alloc_unitialized_array() {
         todo!();
     }
@@ -610,6 +620,11 @@ mod tests {
 
     #[test]
     fn test_alloc_unitialized_array_over_capacity() {
+        todo!();
+    }
+
+    #[test]
+    fn test_alloc_unitialized_array_to_capacity_reset() {
         todo!();
     }
 
