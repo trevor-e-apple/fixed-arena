@@ -135,6 +135,12 @@ mod tests {
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
+    struct I32Struct {
+        x: i32,
+        y: i32,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
     struct SmallerStruct {
         x: i16,
         y: i16,
@@ -426,7 +432,54 @@ mod tests {
     // TODO: document me
     #[test]
     fn test_alloc_multiple_arrays() {
-        todo!();
+        let capacity = 1024;
+        let arena = FixedArena::with_capacity(capacity).unwrap();
+        let count = capacity / (2 * size_of::<I32Struct>());
+        let test_array_one = arena
+            .alloc_array::<I32Struct>(count)
+            .unwrap();
+        let test_array_two = arena
+            .alloc_array::<I32Struct>(count)
+            .unwrap();
+
+        const ARRAY_ONE_X_VALUE: i32 = 0x7FFFFFFF;
+        const ARRAY_ONE_Y_VALUE: i32 = -1;
+
+        const ARRAY_TWO_X_VALUE: i32 = 0x7ABABABA;
+        const ARRAY_TWO_Y_VALUE: i32 = -1 * 0x7ABABABA;
+
+        for test_value in test_array_one.iter_mut() {
+            test_value.x = ARRAY_ONE_X_VALUE;
+            test_value.y = ARRAY_ONE_Y_VALUE;
+        }
+        for test_value in test_array_two.iter_mut() {
+            test_value.x = ARRAY_TWO_X_VALUE;
+            test_value.y = ARRAY_TWO_Y_VALUE;
+        }
+
+        for test_value in test_array_one.iter() {
+            assert_eq!(test_value.x, ARRAY_ONE_X_VALUE);
+            assert_eq!(test_value.y, ARRAY_ONE_Y_VALUE);
+        }
+        for test_value in test_array_two.iter() {
+            assert_eq!(test_value.x, ARRAY_TWO_X_VALUE);
+            assert_eq!(test_value.y, ARRAY_TWO_Y_VALUE);
+        }
+
+        // make sure array_one can't overwrite array_two
+        for test_value in test_array_one.iter_mut() {
+            test_value.x = ARRAY_ONE_X_VALUE;
+            test_value.y = ARRAY_ONE_Y_VALUE;
+        }
+
+        for test_value in test_array_one.iter() {
+            assert_eq!(test_value.x, ARRAY_ONE_X_VALUE);
+            assert_eq!(test_value.y, ARRAY_ONE_Y_VALUE);
+        }
+        for test_value in test_array_two.iter() {
+            assert_eq!(test_value.x, ARRAY_TWO_X_VALUE);
+            assert_eq!(test_value.y, ARRAY_TWO_Y_VALUE);
+        }
     }
 
     // TODO: document me
