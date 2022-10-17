@@ -162,7 +162,6 @@ impl Drop for FixedArena {
     }
 }
 
-// TODO: move this to the tests directory?
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,519 +211,7 @@ mod tests {
 
     // TODO: document me
     #[test]
-    fn test_basic_allocation() {
-        let arena = FixedArena::with_capacity(1024).unwrap();
-        {
-            let test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
-            assert!(test.x == 0.0);
-            assert!(test.y == 0.0);
-        }
-    }
-
-    // TODO: document me
-    #[test]
     fn test_init_with_base() {
-        todo!();
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_reset() {
-        let mut arena = FixedArena::with_capacity(1024).unwrap();
-        {
-            arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
-        }
-        arena.reset();
-        assert!(arena.used.get() == 0);
-        {
-            let test_two = arena.alloc(TestStruct { x: 1.0, y: 2.0 }).unwrap();
-
-            assert!(test_two.x == 1.0);
-            assert!(test_two.y == 2.0);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_reset_with_mut() {
-        let mut arena = FixedArena::with_capacity(1024).unwrap();
-
-        {
-            let mut test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
-            assert!(test.x == 0.0);
-            test.x = 1.0;
-            assert!(test.x == 1.0);
-        }
-
-        arena.reset();
-        assert!(arena.used.get() == 0);
-
-        {
-            let test_two = arena.alloc(TestStruct { x: 1.0, y: 2.0 }).unwrap();
-
-            assert!(test_two.x == 1.0);
-            assert!(test_two.y == 2.0);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_zeroed() {
-        let arena = FixedArena::with_capacity(1024).unwrap();
-        {
-            let test = arena.alloc_zeroed::<TestStruct>().unwrap();
-            assert!(test.x == 0.0);
-            assert!(test.y == 0.0);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alignment() {
-        todo!();
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_multiple_allocation() {
-        let arena = FixedArena::with_capacity(1024).unwrap();
-
-        {
-            let test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
-            let test_two = arena.alloc(TestStruct { x: 1.0, y: 2.0 }).unwrap();
-
-            assert!(test.x == 0.0);
-            assert!(test.y == 0.0);
-            assert!(test_two.x == 1.0);
-            assert!(test_two.y == 2.0);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_reset_in_loop() {
-        let capacity = 1024;
-        let mut arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..capacity {
-            let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-            arena.reset();
-        }
-    }
-
-    fn alloc_and_check<T>(arena: &FixedArena, val: T) -> &mut T
-    where
-        T: PartialEq + Copy,
-    {
-        let result = arena.alloc(val).unwrap();
-        assert!(*result == val);
-
-        result
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_mixed_allocation() {
-        let arena = FixedArena::with_capacity(1024).unwrap();
-
-        let first = TestStruct { x: 1.0, y: -1.0 };
-        let first_result = alloc_and_check(&arena, first);
-
-        let second = LargerStruct {
-            x: (1 << 42),
-            y: -1 * (1 << 42),
-        };
-        let second_result = alloc_and_check(&arena, second);
-
-        let third = SmallerStruct {
-            x: 1 << 9,
-            y: -1 * (1 << 9),
-        };
-        let third_result = alloc_and_check(&arena, third);
-
-        let fourth = SmallStruct { x: 127, y: -1 };
-        let fourth_result = alloc_and_check(&arena, fourth);
-
-        let fifth = MixedStruct {
-            a: 1 << 33,
-            b: 1 << 17,
-            c: 1 << 9,
-            d: 127,
-            e: 1.000454846,
-            f: -1.000454846,
-            g: 0xFFFF,
-            h: 0xFF,
-        };
-        let fifth_result = alloc_and_check(&arena, fifth);
-
-        assert!(first == *first_result);
-        assert!(second == *second_result);
-        assert!(third == *third_result);
-        assert!(fourth == *fourth_result);
-        assert!(fifth == *fifth_result);
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_at_capacity() {
-        let capacity = 1024;
-        let count = capacity / size_of::<TestStruct>();
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..count {
-            let mut test = arena.alloc(TestStruct { x: 1.0, y: -1.0 }).unwrap();
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_reset_at_capacity() {
-        let capacity = 1024;
-        let count = capacity;
-        let mut arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..count {
-            let test = match arena.alloc(TestStruct { x: 1.0, y: -1.0 }) {
-                Ok(result) => result,
-                Err(error) => match error {
-                    // if we're at capacity, reset and retry, panic if alloc
-                    // fails again
-                    AllocError::AtCapacity => {
-                        arena.reset();
-                        arena.alloc(TestStruct { x: 1.0, y: -1.0 }).unwrap()
-                    }
-                },
-            };
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_over_capacity() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = capacity / size_of::<TestStruct>();
-        for index in 0..count {
-            let mut test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-        }
-        match arena.alloc(TestStruct { x: 0.0, y: 0.0 }) {
-            Ok(_) => assert!(false),
-            Err(err) => assert_eq!(err, AllocError::AtCapacity),
-        };
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_at_capacity_alloc_zeroed() {
-        let capacity = 1024;
-        let count = capacity / size_of::<TestStruct>();
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..count {
-            let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_reset_at_capacity_alloc_zeroed() {
-        let capacity = 1024;
-        let count = capacity;
-        let mut arena = FixedArena::with_capacity(capacity).unwrap();
-        for index in 0..count {
-            let test = match arena.alloc_zeroed::<TestStruct>() {
-                Ok(result) => result,
-                Err(error) => match error {
-                    // if we're at capacity, reset and retry, panic if alloc
-                    // fails again
-                    AllocError::AtCapacity => {
-                        arena.reset();
-                        arena.alloc_zeroed::<TestStruct>().unwrap()
-                    }
-                },
-            };
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_over_capacity_alloc_zeroed() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = capacity / size_of::<TestStruct>();
-        for index in 0..count {
-            let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
-            test.x = 15.0;
-            test.y = test.x + (index as f32);
-        }
-
-        match arena.alloc_zeroed::<TestStruct>() {
-            Ok(_) => assert!(false),
-            Err(err) => assert_eq!(err, AllocError::AtCapacity),
-        };
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_array() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let test_array =
-            arena.alloc_array(TestStruct { x: 0.0, y: 0.0 }, 8).unwrap();
-        for test_value in test_array {
-            test_value.x = 1.0;
-            test_value.y = -1.0;
-        }
-    }
-
-    // TODO: document me
-    fn fill_test_arrays(
-        test_array_one: &mut [I32Struct],
-        test_array_two: &mut [I32Struct],
-    ) {
-        const ARRAY_ONE_X_VALUE: i32 = 0x7FFFFFFF;
-        const ARRAY_ONE_Y_VALUE: i32 = -1;
-
-        const ARRAY_TWO_X_VALUE: i32 = 0x7ABABABA;
-        const ARRAY_TWO_Y_VALUE: i32 = -1 * 0x7ABABABA;
-
-        for test_value in test_array_one.iter_mut() {
-            test_value.x = ARRAY_ONE_X_VALUE;
-            test_value.y = ARRAY_ONE_Y_VALUE;
-        }
-        for test_value in test_array_two.iter_mut() {
-            test_value.x = ARRAY_TWO_X_VALUE;
-            test_value.y = ARRAY_TWO_Y_VALUE;
-        }
-
-        for test_value in test_array_one.iter() {
-            assert_eq!(test_value.x, ARRAY_ONE_X_VALUE);
-            assert_eq!(test_value.y, ARRAY_ONE_Y_VALUE);
-        }
-        for test_value in test_array_two.iter() {
-            assert_eq!(test_value.x, ARRAY_TWO_X_VALUE);
-            assert_eq!(test_value.y, ARRAY_TWO_Y_VALUE);
-        }
-
-        // make sure array_one can't overwrite array_two
-        for test_value in test_array_one.iter_mut() {
-            test_value.x = ARRAY_ONE_X_VALUE;
-            test_value.y = ARRAY_ONE_Y_VALUE;
-        }
-
-        for test_value in test_array_one.iter() {
-            assert_eq!(test_value.x, ARRAY_ONE_X_VALUE);
-            assert_eq!(test_value.y, ARRAY_ONE_Y_VALUE);
-        }
-        for test_value in test_array_two.iter() {
-            assert_eq!(test_value.x, ARRAY_TWO_X_VALUE);
-            assert_eq!(test_value.y, ARRAY_TWO_Y_VALUE);
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_multiple_arrays() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = capacity / (2 * size_of::<I32Struct>());
-        let test_array_one =
-            arena.alloc_array(I32Struct { x: 0, y: 0 }, count).unwrap();
-        let test_array_two =
-            arena.alloc_array(I32Struct { x: 0, y: 0 }, count).unwrap();
-
-        fill_test_arrays(test_array_one, test_array_two);
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_array_to_capacity() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let test_array = arena
-            .alloc_array(
-                TestStruct { x: 0.0, y: 1.0 },
-                capacity / size_of::<TestStruct>(),
-            )
-            .unwrap();
-
-        // just in case we change the TestStruct def, be sure that we actually
-        // test to the complete capacity of the arena
-        assert_eq!(capacity % size_of::<TestStruct>(), 0);
-
-        for test_value in test_array {
-            test_value.x = 1.0;
-            test_value.y = -1.0;
-        }
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_array_over_capacity() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let result = arena.alloc_array(
-            TestStruct { x: 0.0, y: 0.0 },
-            capacity / size_of::<TestStruct>() + 1,
-        );
-        match result {
-            Ok(_) => assert!(false),
-            Err(err) => assert_eq!(err, AllocError::AtCapacity),
-        };
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_array_to_capacity_reset() {
-        let capacity = 1024;
-        let count = capacity / size_of::<TestStruct>();
-        let mut arena = FixedArena::with_capacity(capacity).unwrap();
-        arena
-            .alloc_array(TestStruct { x: 0.0, y: 0.0 }, count)
-            .unwrap();
-
-        // attempt to alloc another array, should fail
-        match arena.alloc_array(TestStruct { x: 0.0, y: 0.0 }, count) {
-            Ok(_) => assert!(false),
-            Err(err) => assert!(err == AllocError::AtCapacity),
-        };
-
-        arena.reset();
-
-        // second attempt should succeed
-        arena
-            .alloc_array(TestStruct { x: 0.0, y: 0.0 }, count)
-            .unwrap();
-    }
-
-    #[test]
-    fn test_alloc_zeroed_array() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let test_array = arena.alloc_zeroed_array::<TestStruct>(8).unwrap();
-        for test_value in test_array.iter() {
-            assert_eq!(test_value.x, 0.0);
-            assert_eq!(test_value.y, 0.0);
-        }
-        for test_value in test_array.iter_mut() {
-            test_value.x = 1.0;
-            test_value.y = -1.0;
-        }
-
-        // verify that the write was successful
-        for test_value in test_array.iter() {
-            assert_eq!(test_value.x, 1.0);
-            assert_eq!(test_value.y, -1.0);
-        }
-    }
-
-    fn verify_zeroed_i32_struct_array(array: &[I32Struct]) {
-        for element in array {
-            assert_eq!(element.x, 0);
-            assert_eq!(element.y, 0);
-        }
-    }
-
-    #[test]
-    fn test_alloc_multiple_zeroed_array() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = capacity / (2 * size_of::<I32Struct>());
-        let test_array_one =
-            arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
-        let test_array_two =
-            arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
-
-        verify_zeroed_i32_struct_array(&test_array_one);
-        verify_zeroed_i32_struct_array(&test_array_two);
-
-        fill_test_arrays(test_array_one, test_array_two);
-    }
-
-    #[test]
-    fn test_alloc_zeroed_array_at_capacity() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = capacity / size_of::<I32Struct>();
-        let array = arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
-        verify_zeroed_i32_struct_array(array);
-
-        for (index, element) in array.iter_mut().enumerate() {
-            element.x = index as i32;
-            element.y = -1 * (index as i32);
-        }
-
-        for (index, element) in array.iter().enumerate() {
-            assert_eq!(element.x, index as i32);
-            assert_eq!(element.y, -1 * (index as i32));
-        }
-    }
-
-    #[test]
-    fn test_alloc_zeroed_array_over_capacity() {
-        let capacity = 1024;
-        let arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = (capacity / size_of::<I32Struct>()) + 1;
-        match arena.alloc_zeroed_array::<I32Struct>(count) {
-            Ok(_) => assert!(false),
-            Err(err) => assert_eq!(err, AllocError::AtCapacity),
-        };
-    }
-
-    #[test]
-    fn test_alloc_zeroed_array_to_capacity_reset() {
-        let capacity = 1024;
-        let mut arena = FixedArena::with_capacity(capacity).unwrap();
-        let count = capacity / size_of::<I32Struct>();
-        arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
-
-        // should fail
-        match arena.alloc_zeroed_array::<I32Struct>(count) {
-            Ok(_) => assert!(false),
-            Err(err) => assert_eq!(err, AllocError::AtCapacity),
-        };
-
-        arena.reset();
-
-        arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
-    }
-
-    #[test]
-    fn test_alloc_unitialized_array() {
-        todo!();
-    }
-
-    #[test]
-    fn test_alloc_multiple_unitialized_array() {
-        todo!();
-    }
-
-    #[test]
-    fn test_alloc_unitialized_array_at_capacity() {
-        todo!();
-    }
-
-    #[test]
-    fn test_alloc_unitialized_array_over_capacity() {
-        todo!();
-    }
-
-    #[test]
-    fn test_alloc_unitialized_array_to_capacity_reset() {
-        todo!();
-    }
-
-    // TODO: document me
-    #[test]
-    fn test_alloc_string() {
         todo!();
     }
 
@@ -744,5 +231,582 @@ mod tests {
     #[test]
     fn test_very_large_arena() {
         todo!();
+    }
+
+    // TODO: document me
+    #[test]
+    fn test_alignment() {
+        todo!();
+    }
+
+    mod reset_tests {
+        use super::*;
+
+        // TODO: document me
+        #[test]
+        fn test_reset() {
+            let mut arena = FixedArena::with_capacity(1024).unwrap();
+            {
+                arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
+            }
+            arena.reset();
+            assert!(arena.used.get() == 0);
+            {
+                let test_two =
+                    arena.alloc(TestStruct { x: 1.0, y: 2.0 }).unwrap();
+
+                assert!(test_two.x == 1.0);
+                assert!(test_two.y == 2.0);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_reset_with_mut() {
+            let mut arena = FixedArena::with_capacity(1024).unwrap();
+
+            {
+                let mut test =
+                    arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
+                assert!(test.x == 0.0);
+                test.x = 1.0;
+                assert!(test.x == 1.0);
+            }
+
+            arena.reset();
+            assert!(arena.used.get() == 0);
+
+            {
+                let test_two =
+                    arena.alloc(TestStruct { x: 1.0, y: 2.0 }).unwrap();
+
+                assert!(test_two.x == 1.0);
+                assert!(test_two.y == 2.0);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_reset_in_loop() {
+            let capacity = 1024;
+            let mut arena = FixedArena::with_capacity(capacity).unwrap();
+            for index in 0..capacity {
+                let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+                arena.reset();
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod test_alloc_struct {
+        use super::*;
+
+        // TODO: document me
+        #[test]
+        fn test_basic_allocation() {
+            let arena = FixedArena::with_capacity(1024).unwrap();
+            {
+                let test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
+                assert!(test.x == 0.0);
+                assert!(test.y == 0.0);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_zeroed() {
+            let arena = FixedArena::with_capacity(1024).unwrap();
+            {
+                let test = arena.alloc_zeroed::<TestStruct>().unwrap();
+                assert!(test.x == 0.0);
+                assert!(test.y == 0.0);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_multiple_allocation() {
+            let arena = FixedArena::with_capacity(1024).unwrap();
+
+            {
+                let test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
+                let test_two =
+                    arena.alloc(TestStruct { x: 1.0, y: 2.0 }).unwrap();
+
+                assert!(test.x == 0.0);
+                assert!(test.y == 0.0);
+                assert!(test_two.x == 1.0);
+                assert!(test_two.y == 2.0);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_mixed_allocation() {
+            let arena = FixedArena::with_capacity(1024).unwrap();
+
+            let first = TestStruct { x: 1.0, y: -1.0 };
+            let first_result = alloc_and_check(&arena, first);
+
+            let second = LargerStruct {
+                x: (1 << 42),
+                y: -1 * (1 << 42),
+            };
+            let second_result = alloc_and_check(&arena, second);
+
+            let third = SmallerStruct {
+                x: 1 << 9,
+                y: -1 * (1 << 9),
+            };
+            let third_result = alloc_and_check(&arena, third);
+
+            let fourth = SmallStruct { x: 127, y: -1 };
+            let fourth_result = alloc_and_check(&arena, fourth);
+
+            let fifth = MixedStruct {
+                a: 1 << 33,
+                b: 1 << 17,
+                c: 1 << 9,
+                d: 127,
+                e: 1.000454846,
+                f: -1.000454846,
+                g: 0xFFFF,
+                h: 0xFF,
+            };
+            let fifth_result = alloc_and_check(&arena, fifth);
+
+            assert!(first == *first_result);
+            assert!(second == *second_result);
+            assert!(third == *third_result);
+            assert!(fourth == *fourth_result);
+            assert!(fifth == *fifth_result);
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_at_capacity() {
+            let capacity = 1024;
+            let count = capacity / size_of::<TestStruct>();
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            for index in 0..count {
+                let mut test =
+                    arena.alloc(TestStruct { x: 1.0, y: -1.0 }).unwrap();
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_reset_at_capacity() {
+            let capacity = 1024;
+            let count = capacity;
+            let mut arena = FixedArena::with_capacity(capacity).unwrap();
+            for index in 0..count {
+                let test = match arena.alloc(TestStruct { x: 1.0, y: -1.0 }) {
+                    Ok(result) => result,
+                    Err(error) => match error {
+                        // if we're at capacity, reset and retry, panic if alloc
+                        // fails again
+                        AllocError::AtCapacity => {
+                            arena.reset();
+                            arena.alloc(TestStruct { x: 1.0, y: -1.0 }).unwrap()
+                        }
+                    },
+                };
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_over_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<TestStruct>();
+            for index in 0..count {
+                let mut test =
+                    arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+            }
+            match arena.alloc(TestStruct { x: 0.0, y: 0.0 }) {
+                Ok(_) => assert!(false),
+                Err(err) => assert_eq!(err, AllocError::AtCapacity),
+            };
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_at_capacity_alloc_zeroed() {
+            let capacity = 1024;
+            let count = capacity / size_of::<TestStruct>();
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            for index in 0..count {
+                let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_reset_at_capacity_alloc_zeroed() {
+            let capacity = 1024;
+            let count = capacity;
+            let mut arena = FixedArena::with_capacity(capacity).unwrap();
+            for index in 0..count {
+                let test = match arena.alloc_zeroed::<TestStruct>() {
+                    Ok(result) => result,
+                    Err(error) => match error {
+                        // if we're at capacity, reset and retry, panic if alloc
+                        // fails again
+                        AllocError::AtCapacity => {
+                            arena.reset();
+                            arena.alloc_zeroed::<TestStruct>().unwrap()
+                        }
+                    },
+                };
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+            }
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_over_capacity_alloc_zeroed() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<TestStruct>();
+            for index in 0..count {
+                let mut test = arena.alloc_zeroed::<TestStruct>().unwrap();
+                test.x = 15.0;
+                test.y = test.x + (index as f32);
+            }
+
+            match arena.alloc_zeroed::<TestStruct>() {
+                Ok(_) => assert!(false),
+                Err(err) => assert_eq!(err, AllocError::AtCapacity),
+            };
+        }
+
+        fn alloc_and_check<T>(arena: &FixedArena, val: T) -> &mut T
+        where
+            T: PartialEq + Copy,
+        {
+            let result = arena.alloc(val).unwrap();
+            assert!(*result == val);
+
+            result
+        }
+    }
+
+    #[cfg(test)]
+    mod alloc_array_tests {
+        use super::*;
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_array() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let test_array =
+                arena.alloc_array(I32Struct { x: 0, y: 0 }, 8).unwrap();
+            alloc_array_common(test_array);
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_multiple_arrays() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / (2 * size_of::<I32Struct>());
+            let test_array_one =
+                arena.alloc_array(I32Struct { x: 0, y: 0 }, count).unwrap();
+            let test_array_two =
+                arena.alloc_array(I32Struct { x: 0, y: 0 }, count).unwrap();
+
+            alloc_multiple_arrays_common(test_array_one, test_array_two);
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_array_to_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<I32Struct>();
+            let test_array =
+                arena.alloc_array(I32Struct { x: 1, y: -1 }, count).unwrap();
+
+            alloc_array_to_capacity_common(test_array, capacity);
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_array_over_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let result = arena.alloc_array(
+                TestStruct { x: 0.0, y: 0.0 },
+                capacity / size_of::<TestStruct>() + 1,
+            );
+            alloc_array_over_capacity_common(result);
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_array_to_capacity_reset() {
+            let capacity = 1024;
+            let count = capacity / size_of::<TestStruct>();
+            let mut arena = FixedArena::with_capacity(capacity).unwrap();
+            arena
+                .alloc_array(TestStruct { x: 0.0, y: 0.0 }, count)
+                .unwrap();
+
+            // attempt to alloc another array, should fail
+            match arena.alloc_array(TestStruct { x: 0.0, y: 0.0 }, count) {
+                Ok(_) => assert!(false),
+                Err(err) => assert!(err == AllocError::AtCapacity),
+            };
+
+            arena.reset();
+
+            // second attempt should succeed
+            arena
+                .alloc_array(TestStruct { x: 0.0, y: 0.0 }, count)
+                .unwrap();
+        }
+
+        #[test]
+        fn test_alloc_zeroed_array() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let test_array = arena.alloc_zeroed_array::<I32Struct>(8).unwrap();
+
+            verify_i32_struct_array(test_array, 0, 0);
+
+            alloc_array_common(test_array);
+        }
+
+        #[test]
+        fn test_alloc_multiple_zeroed_array() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / (2 * size_of::<I32Struct>());
+            let test_array_one =
+                arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
+            let test_array_two =
+                arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
+
+            verify_i32_struct_array(&test_array_one, 0, 0);
+            verify_i32_struct_array(&test_array_two, 0, 0);
+
+            alloc_multiple_arrays_common(test_array_one, test_array_two);
+        }
+
+        #[test]
+        fn test_alloc_zeroed_array_to_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<I32Struct>();
+            let array = arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
+            verify_i32_struct_array(array, 0, 0);
+
+            alloc_array_to_capacity_common(array, capacity);
+        }
+
+        #[test]
+        fn test_alloc_zeroed_array_over_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = (capacity / size_of::<I32Struct>()) + 1;
+            match arena.alloc_zeroed_array::<I32Struct>(count) {
+                Ok(_) => assert!(false),
+                Err(err) => assert_eq!(err, AllocError::AtCapacity),
+            };
+        }
+
+        #[test]
+        fn test_alloc_zeroed_array_to_capacity_reset() {
+            let capacity = 1024;
+            let mut arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<I32Struct>();
+            arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
+
+            // should fail
+            match arena.alloc_zeroed_array::<I32Struct>(count) {
+                Ok(_) => assert!(false),
+                Err(err) => assert_eq!(err, AllocError::AtCapacity),
+            };
+
+            arena.reset();
+
+            let array = arena.alloc_zeroed_array::<I32Struct>(count).unwrap();
+            verify_i32_struct_array(array, 0, 0);
+        }
+
+        #[test]
+        fn test_alloc_unitialized_array() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let array =
+                arena.alloc_uninitialized_array::<I32Struct>(8).unwrap();
+
+            alloc_array_common(array);
+        }
+
+        #[test]
+        fn test_alloc_multiple_unitialized_array() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / (2 * size_of::<I32Struct>());
+            let test_array_one =
+                arena.alloc_uninitialized_array::<I32Struct>(count).unwrap();
+            let test_array_two =
+                arena.alloc_uninitialized_array::<I32Struct>(count).unwrap();
+
+            alloc_multiple_arrays_common(test_array_one, test_array_two);
+        }
+
+        #[test]
+        fn test_alloc_unitialized_array_to_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<I32Struct>();
+            let array =
+                arena.alloc_uninitialized_array::<I32Struct>(count).unwrap();
+
+            alloc_array_to_capacity_common(array, capacity);
+        }
+
+        #[test]
+        fn test_alloc_unitialized_array_over_capacity() {
+            let capacity = 1024;
+            let arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<I32Struct>() + 1;
+            let result = arena.alloc_uninitialized_array::<I32Struct>(count);
+
+            alloc_array_over_capacity_common(result);
+        }
+
+        #[test]
+        fn test_alloc_unitialized_array_to_capacity_reset() {
+            let capacity = 1024;
+            let mut arena = FixedArena::with_capacity(capacity).unwrap();
+            let count = capacity / size_of::<I32Struct>();
+            arena.alloc_uninitialized_array::<I32Struct>(count).unwrap();
+
+            // should fail
+            match arena.alloc_uninitialized_array::<I32Struct>(count) {
+                Ok(_) => assert!(false),
+                Err(err) => assert_eq!(err, AllocError::AtCapacity),
+            };
+
+            arena.reset();
+
+            // second attempt should succeed
+            arena.alloc_uninitialized_array::<I32Struct>(count).unwrap();
+        }
+
+        // TODO: document me
+        #[test]
+        fn test_alloc_string() {
+            todo!();
+        }
+
+        fn alloc_array_common(array: &mut [I32Struct]) {
+            const X_VALUE: i32 = 1;
+            const Y_VALUE: i32 = -1;
+
+            for element in array.iter_mut() {
+                element.x = X_VALUE;
+                element.y = Y_VALUE;
+            }
+
+            verify_i32_struct_array(array, 1, -1);
+        }
+
+        fn alloc_array_to_capacity_common(
+            test_array: &mut [I32Struct],
+            capacity: usize,
+        ) {
+            assert_eq!(capacity % size_of::<I32Struct>(), 0);
+
+            const X_VALUE: i32 = 1;
+            const Y_VALUE: i32 = -1;
+
+            for element in test_array.iter_mut() {
+                element.x = X_VALUE;
+                element.y = Y_VALUE;
+            }
+
+            verify_i32_struct_array(test_array, X_VALUE, Y_VALUE);
+        }
+
+        // TODO: document me
+        fn alloc_multiple_arrays_common(
+            test_array_one: &mut [I32Struct],
+            test_array_two: &mut [I32Struct],
+        ) {
+            const ARRAY_ONE_X_VALUE: i32 = 0x7FFFFFFF;
+            const ARRAY_ONE_Y_VALUE: i32 = -1;
+
+            const ARRAY_TWO_X_VALUE: i32 = 0x7ABABABA;
+            const ARRAY_TWO_Y_VALUE: i32 = -1 * 0x7ABABABA;
+
+            for test_value in test_array_one.iter_mut() {
+                test_value.x = ARRAY_ONE_X_VALUE;
+                test_value.y = ARRAY_ONE_Y_VALUE;
+            }
+            for test_value in test_array_two.iter_mut() {
+                test_value.x = ARRAY_TWO_X_VALUE;
+                test_value.y = ARRAY_TWO_Y_VALUE;
+            }
+
+            for test_value in test_array_one.iter() {
+                assert_eq!(test_value.x, ARRAY_ONE_X_VALUE);
+                assert_eq!(test_value.y, ARRAY_ONE_Y_VALUE);
+            }
+            for test_value in test_array_two.iter() {
+                assert_eq!(test_value.x, ARRAY_TWO_X_VALUE);
+                assert_eq!(test_value.y, ARRAY_TWO_Y_VALUE);
+            }
+
+            // make sure array_one can't overwrite array_two
+            for test_value in test_array_one.iter_mut() {
+                test_value.x = ARRAY_ONE_X_VALUE;
+                test_value.y = ARRAY_ONE_Y_VALUE;
+            }
+
+            for test_value in test_array_one.iter() {
+                assert_eq!(test_value.x, ARRAY_ONE_X_VALUE);
+                assert_eq!(test_value.y, ARRAY_ONE_Y_VALUE);
+            }
+            for test_value in test_array_two.iter() {
+                assert_eq!(test_value.x, ARRAY_TWO_X_VALUE);
+                assert_eq!(test_value.y, ARRAY_TWO_Y_VALUE);
+            }
+        }
+
+        fn alloc_array_over_capacity_common<T>(result: Result<T, AllocError>) {
+            match result {
+                Ok(_) => assert!(false),
+                Err(err) => assert_eq!(err, AllocError::AtCapacity),
+            };
+        }
+
+        fn verify_i32_struct_array(
+            array: &[I32Struct],
+            expected_x_value: i32,
+            expected_y_value: i32,
+        ) {
+            for element in array {
+                assert_eq!(element.x, expected_x_value);
+                assert_eq!(element.y, expected_y_value);
+            }
+        }
     }
 }
