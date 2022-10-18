@@ -1,8 +1,10 @@
+#![feature(test)]
+extern crate test;
+
 use core::{cell::Cell, ptr};
 use std::{
     alloc::{alloc, dealloc, Layout},
     slice,
-    string::String,
 };
 
 pub struct FixedArena {
@@ -166,50 +168,15 @@ impl Drop for FixedArena {
 
 #[cfg(test)]
 mod tests {
+    mod test_structs;
+
     use super::*;
     use std::{cmp::PartialEq, mem::size_of};
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct TestStruct {
-        x: f32,
-        y: f32,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct LargerStruct {
-        x: i64,
-        y: i64,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct I32Struct {
-        x: i32,
-        y: i32,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct SmallerStruct {
-        x: i16,
-        y: i16,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct SmallStruct {
-        x: i8,
-        y: i8,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    struct MixedStruct {
-        a: i64,
-        b: i32,
-        c: i16,
-        d: i8,
-        e: f64,
-        f: f32,
-        g: u16,
-        h: u8,
-    }
+    use test_structs::{
+        I32Struct, LargerStruct, MixedStruct, SmallStruct, SmallerStruct,
+        TestStruct,
+    };
 
     // TODO: document me
     #[test]
@@ -241,7 +208,7 @@ mod tests {
         todo!();
     }
 
-    mod reset_tests {
+    mod reset {
         use super::*;
 
         // TODO: document me
@@ -302,7 +269,7 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod test_alloc_struct {
+    mod alloc_struct {
         use super::*;
 
         // TODO: document me
@@ -507,7 +474,7 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod alloc_array_tests {
+    mod alloc_array {
         use super::*;
 
         // TODO: document me
@@ -803,6 +770,47 @@ mod tests {
                 assert_eq!(element.x, expected_x_value);
                 assert_eq!(element.y, expected_y_value);
             }
+        }
+    }
+
+    #[cfg(test)]
+    mod benchmark {
+        use super::*;
+        use std::vec::Vec;
+        use test::Bencher;
+
+        const ELEMENT_COUNT: usize = 100;
+
+        #[bench]
+        fn bench_std_alloc(b: &mut Bencher) {
+            b.iter(|| {
+                let mut elements: Vec<I32Struct> = Vec::new();
+                for _ in 0..ELEMENT_COUNT {
+                    elements.push(I32Struct { x: 0, y: 0 });
+                }
+                for (index, element) in elements.iter_mut().enumerate() {
+                    element.x = index as i32;
+                    element.y = -1 * (index as i32);
+                }
+            });
+        }
+
+        #[bench]
+        fn bench_arena_alloc(b: &mut Bencher) {
+            let mut arena = FixedArena::with_capacity(
+                ELEMENT_COUNT * size_of::<I32Struct>(),
+            );
+
+            b.iter(|| {
+                let elements = arena
+                    .alloc_zeroed_array::<I32Struct>(ELEMENT_COUNT)
+                    .unwrap();
+                for (index, element) in elements.iter_mut().enumerate() {
+                    element.x = index as i32;
+                    element.y = -1 * (index as i32);
+                }
+                arena.reset();
+            });
         }
     }
 }
