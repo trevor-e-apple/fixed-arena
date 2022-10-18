@@ -779,12 +779,27 @@ mod tests {
         use std::vec::Vec;
         use test::Bencher;
 
-        const ELEMENT_COUNT: usize = 100;
+        const ELEMENT_COUNT: usize = 1024;
+
+        #[bench]
+        fn bench_std_alloc_push(b: &mut Bencher) {
+            b.iter(|| {
+                let mut elements: Vec<I32Struct> = Vec::new();
+                for _ in 0..ELEMENT_COUNT {
+                    elements.push(I32Struct { x: 0, y: 0 });
+                }
+                for (index, element) in elements.iter_mut().enumerate() {
+                    element.x = index as i32;
+                    element.y = -1 * (index as i32);
+                }
+            });
+        }
 
         #[bench]
         fn bench_std_alloc(b: &mut Bencher) {
             b.iter(|| {
-                let mut elements: Vec<I32Struct> = Vec::new();
+                let mut elements: Vec<I32Struct> =
+                    Vec::with_capacity(ELEMENT_COUNT);
                 for _ in 0..ELEMENT_COUNT {
                     elements.push(I32Struct { x: 0, y: 0 });
                 }
@@ -809,6 +824,83 @@ mod tests {
                     element.x = index as i32;
                     element.y = -1 * (index as i32);
                 }
+                arena.reset();
+            });
+        }
+
+        fn mutate_mixed_data(
+            a: &mut I32Struct,
+            b: &mut LargerStruct,
+            c: &mut MixedStruct,
+            d: &mut SmallerStruct,
+            e: &mut SmallStruct,
+            f: &mut MixedStruct,
+            g: &mut I32Struct
+        ) {
+            a.x += 2;
+            b.y += 2;
+            c.c += 2;
+            d.x += 2;
+            e.y += 2;
+            f.a += 2;
+            g.x += 2;
+        }
+
+        #[bench]
+        fn bench_std_alloc_mixed(b: &mut Bencher) {
+            b.iter(|| {
+                let mut a: Box<I32Struct> = Box::new(Default::default());
+                let mut b: Box<LargerStruct> = Box::new(Default::default());
+                let mut b1: Vec<I32Struct> = Vec::with_capacity(ELEMENT_COUNT);
+                let mut c: Box<MixedStruct> = Box::new(Default::default());
+                let mut d: Box<SmallerStruct> = Box::new(Default::default());
+                let mut e: SmallStruct = Default::default();
+                let mut f: MixedStruct = Default::default();
+                let mut g: I32Struct = Default::default();
+
+                for _ in 0..ELEMENT_COUNT {
+                    b1.push(I32Struct { x: 0, y: 0 });
+                }
+
+                mutate_mixed_data(
+                    &mut a,
+                    &mut b,
+                    &mut c,
+                    &mut d,
+                    &mut e,
+                    &mut f,
+                    &mut g
+                );
+                g.x += b1.len() as i32;
+            });
+        }
+
+        #[bench]
+        fn bench_arena_alloc_mixed(b: &mut Bencher) {
+            let mut arena = FixedArena::with_capacity(
+                ELEMENT_COUNT * size_of::<I32Struct>() + 2048
+            );
+            b.iter(|| {
+                let a = arena.alloc_zeroed::<I32Struct>().unwrap();
+                let b = arena.alloc_zeroed::<LargerStruct>().unwrap();
+                let b1 = arena.alloc_zeroed_array::<I32Struct>(ELEMENT_COUNT).unwrap();
+                let c = arena.alloc_zeroed::<MixedStruct>().unwrap();
+                let d = arena.alloc_zeroed::<SmallerStruct>().unwrap();
+                let e = arena.alloc_zeroed::<SmallStruct>().unwrap();
+                let f = arena.alloc_zeroed::<MixedStruct>().unwrap();
+                let g = arena.alloc_zeroed::<I32Struct>().unwrap();
+
+                mutate_mixed_data(
+                    a,
+                    b,
+                    c,
+                    d,
+                    e,
+                    f,
+                    g
+                );
+                g.x += b1.len() as i32;
+
                 arena.reset();
             });
         }
