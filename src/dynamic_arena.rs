@@ -3,9 +3,9 @@ use core::cell::Cell;
 pub struct DynamicArena {
     base: *mut u8,
     used: Cell<usize>,
-    capacity: usize, // TODO: change this to pages_committed
-    reserved: usize // TODO: change this to pages_reserved
-    // TODO: track page size
+    pages_committed: usize,
+    pages_reserved: usize,
+    page_size: u32,
 }
 
 #[cfg(target_os = "windows")]

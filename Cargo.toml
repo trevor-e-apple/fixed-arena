@@ -9,5 +9,7 @@ edition = "2021"
 windows = "0.42.0"
 features = [
 	"Win32_Foundation",
-	"Win32_System_Memory"
+	"Win32_System_Memory",
+	"Win32_System_SystemInformation",
+	"Win32_System_Diagnostics_Debug"
 ]
