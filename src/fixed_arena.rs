@@ -145,9 +145,8 @@ impl Drop for FixedArena {
     // TODO: document me
     fn drop(&mut self) {
         // TODO: remove magic alignment
-        let layout =
-            Layout::from_size_align(self.capacity, self.base_align)
-                .expect("Layout failed");
+        let layout = Layout::from_size_align(self.capacity, self.base_align)
+            .expect("Layout failed");
         unsafe {
             dealloc(self.base, layout);
         }
@@ -794,7 +793,8 @@ mod tests {
         #[bench]
         fn bench_arena_alloc(b: &mut Bencher) {
             let mut arena = FixedArena::with_capacity(
-                ELEMENT_COUNT * size_of::<I32Struct>(), DEFAULT_ALIGN
+                ELEMENT_COUNT * size_of::<I32Struct>(),
+                DEFAULT_ALIGN,
             );
 
             b.iter(|| {
@@ -816,7 +816,7 @@ mod tests {
             d: &mut SmallerStruct,
             e: &mut SmallStruct,
             f: &mut MixedStruct,
-            g: &mut I32Struct
+            g: &mut I32Struct,
         ) {
             a.x += 2;
             b.y += 2;
@@ -844,13 +844,7 @@ mod tests {
                 }
 
                 mutate_mixed_data(
-                    &mut a,
-                    &mut b,
-                    &mut c,
-                    &mut d,
-                    &mut e,
-                    &mut f,
-                    &mut g
+                    &mut a, &mut b, &mut c, &mut d, &mut e, &mut f, &mut g,
                 );
                 g.x += b1.len() as i32;
             });
@@ -859,27 +853,22 @@ mod tests {
         #[bench]
         fn bench_arena_alloc_mixed(b: &mut Bencher) {
             let mut arena = FixedArena::with_capacity(
-                ELEMENT_COUNT * size_of::<I32Struct>() + 2048, DEFAULT_ALIGN
+                ELEMENT_COUNT * size_of::<I32Struct>() + 2048,
+                DEFAULT_ALIGN,
             );
             b.iter(|| {
                 let a = arena.alloc_zeroed::<I32Struct>().unwrap();
                 let b = arena.alloc_zeroed::<LargerStruct>().unwrap();
-                let b1 = arena.alloc_zeroed_array::<I32Struct>(ELEMENT_COUNT).unwrap();
+                let b1 = arena
+                    .alloc_zeroed_array::<I32Struct>(ELEMENT_COUNT)
+                    .unwrap();
                 let c = arena.alloc_zeroed::<MixedStruct>().unwrap();
                 let d = arena.alloc_zeroed::<SmallerStruct>().unwrap();
                 let e = arena.alloc_zeroed::<SmallStruct>().unwrap();
                 let f = arena.alloc_zeroed::<MixedStruct>().unwrap();
                 let g = arena.alloc_zeroed::<I32Struct>().unwrap();
 
-                mutate_mixed_data(
-                    a,
-                    b,
-                    c,
-                    d,
-                    e,
-                    f,
-                    g
-                );
+                mutate_mixed_data(a, b, c, d, e, f, g);
                 g.x += b1.len() as i32;
 
                 arena.reset();
