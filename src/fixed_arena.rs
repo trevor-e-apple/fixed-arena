@@ -775,6 +775,7 @@ mod tests {
             });
         }
 
+        // TODO: this is not specific to this arena. move
         #[bench]
         fn bench_std_alloc(b: &mut Bencher) {
             b.iter(|| {
