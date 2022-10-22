@@ -1,11 +1,9 @@
 use core::cell::Cell;
 use std::{alloc::Layout, ffi::c_void, ptr};
 
-use windows::Win32::System::{
-    Memory::{
-        VirtualAlloc, VirtualFree, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE,
-        PAGE_READWRITE,
-    }
+use windows::Win32::System::Memory::{
+    VirtualAlloc, VirtualFree, MEM_COMMIT, MEM_DECOMMIT, MEM_RELEASE,
+    MEM_RESERVE, PAGE_READWRITE,
 };
 
 use crate::{
@@ -16,13 +14,12 @@ impl DynamicArena {
     // TODO: more documentation with details on page sizes, and difference between
     // -- capacity and reserved
     /// reserved must be greater than or equal to capacity
+    /// It is recommended that capacity and reserved are multiples of page size
     pub fn with_capacity_reserve(
         capacity: usize,
         reserved: usize,
     ) -> DynamicArena {
         assert!(capacity <= reserved);
-
-        let page_size = get_page_size();
 
         let base: *mut u8;
         unsafe {
@@ -34,7 +31,7 @@ impl DynamicArena {
                 PAGE_READWRITE,
             ) as *mut u8;
 
-            // allocate the starting amount
+            // allocate the starting capacity
             VirtualAlloc(
                 Some(base as *const c_void),
                 capacity,
@@ -45,39 +42,14 @@ impl DynamicArena {
             // TODO: error handling
         }
 
-        let pages_reserved =
-            ((reserved as f64) / (page_size as f64)).ceil() as usize;
-        let pages_committed =
-            ((capacity as f64) / (page_size as f64)).ceil() as usize;
-
+        let page_size = get_page_size();
         DynamicArena {
             base,
+            reserved,
             page_size,
-            pages_reserved,
-            pages_committed: Cell::new(pages_committed),
+            committed: Cell::new(capacity),
             used: Cell::new(0),
         }
-    }
-
-    // TODO: inline
-    // TODO: can this be moved out to code common to all implementations?
-    /// converts page count to equivalent number of bytes
-    fn page_to_size(&self, page_count: usize) -> usize {
-        page_count * self.page_size
-    }
-
-    // TODO: inline
-    // TODO: can this be moved out to code common to all implementations?
-    /// gives the size of all reserved memory in bytes
-    pub fn get_reserved(&self) -> usize {
-        self.page_to_size(self.pages_reserved)
-    }
-
-    // TODO: inline
-    // TODO: can this be moved out to code common to all implementations?
-    /// gives the size of all committed memory in bytes
-    pub fn get_committed(&self) -> usize {
-        self.page_to_size(self.pages_committed.get())
     }
 
     // TODO: inline
@@ -85,39 +57,31 @@ impl DynamicArena {
     fn grow(&self, new_mem_needed: usize) -> Result<(), AllocError> {
         let mem_needed = self.used.get() + new_mem_needed;
 
-        if mem_needed > self.get_reserved() {
+        if mem_needed > self.reserved {
             return Err(AllocError::AtCapacity);
-        }
-
-        let mem_committed = self.page_to_size(self.pages_committed.get());
-        if mem_needed > mem_committed {
-            // + 1 b/c we always need at least one page
-            let pages_needed = (mem_needed / self.page_size) + 1;
-            let double_pages_needed = 2 * pages_needed;
-            let new_commit_page_count =
-                if double_pages_needed < self.pages_reserved {
-                    double_pages_needed
-                } else {
-                    self.pages_reserved
-                };
-
+        } else if mem_needed > self.committed.get() {
             /*
             From microsoft docs on VirtualAlloc:
             "VirtualAlloc...can commit a page that is already committed.
             This means you can commit a range of pages, regardless of whether
             they have already been committed, and the function will not fail."
             */
+            let double_mem_needed = 2 * mem_needed;
+            let mem_to_commit = if double_mem_needed <= self.reserved {
+                double_mem_needed
+            } else {
+                self.reserved
+            };
             unsafe {
                 VirtualAlloc(
                     Some(self.base as *const c_void),
-                    self.page_to_size(new_commit_page_count),
+                    mem_to_commit,
                     MEM_COMMIT,
                     PAGE_READWRITE,
                 );
                 // TODO: error handling
             }
-
-            self.pages_committed.set(new_commit_page_count);
+            self.committed.set(mem_to_commit);
 
             Ok(())
         } else {
@@ -138,18 +102,47 @@ impl DynamicArena {
         }
     }
 
-    // TODO: reset with minimum size
-    // TODO: just shrink without a reset
+    // TODO: more documentation, examples
+    /// Reset the arena. Set the used value to 0
+    pub fn reset(&mut self) {
+        self.used.set(0);
+    }
+
+    // TODO: more documentation, examples
+    /// Reset the arena and then shrink the committed memory down to new_size
+    /// it's recommended that new_size is a multiple of page size
+    pub fn reset_and_shrink(&mut self, new_size: usize) {
+        self.reset();
+
+        let remainder = new_size % self.page_size;
+        let free_from = if remainder == 0 {
+            new_size
+        } else {
+            new_size + remainder
+        };
+
+        unsafe {
+            VirtualFree(
+                self.base.offset(free_from as isize) as *mut c_void,
+                self.committed.get(),
+                MEM_DECOMMIT,
+            );
+            // TODO: error handling
+        }
+        self.committed.set(free_from);
+    }
 }
 
 impl Drop for DynamicArena {
     fn drop(&mut self) {
+        /*
+        From microsoft docs on VirtualFree:
+        If the dwFreeType parameter is MEM_RELEASE, this parameter must be 0
+        (zero). The function frees the entire region that is reserved in the
+        initial allocation call to VirtualAlloc.
+        */
         unsafe {
-            VirtualFree(
-                self.base as *mut c_void,
-                self.pages_reserved * self.page_size,
-                MEM_RELEASE,
-            );
+            VirtualFree(self.base as *mut c_void, 0, MEM_RELEASE);
         }
     }
 }
