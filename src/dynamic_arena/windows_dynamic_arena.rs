@@ -90,14 +90,37 @@ impl DynamicArena {
     }
 
     // TODO: document me
-    pub fn alloc<T>(&self, val: T) -> Result<&mut T, AllocError> {
-        let layout = Layout::new::<T>();
+    fn get_alloc_ptr(
+        &self,
+        layout: Layout,
+    ) -> Result<*mut u8, AllocError> {
         self.grow(layout.size())?;
 
+        let result: *mut u8 =
+            unsafe { self.base.offset(self.used.get() as isize) };
         self.used.set(self.used.get() + layout.size());
+        Ok(result)
+    }
+
+    // TODO: document me
+    pub fn alloc<T>(&self, val: T) -> Result<&mut T, AllocError> {
+        let layout = Layout::new::<T>();
+        let result_ptr = self.get_alloc_ptr(layout)?;
+
         unsafe {
-            let result = self.base.offset(layout.size() as isize) as *mut T;
+            let result = result_ptr as *mut T;
             ptr::write(result, val);
+            Ok(&mut *result)
+        }
+    }
+
+    pub fn alloc_zeroed<T>(&self) -> Result<&mut T, AllocError> {
+        let layout = Layout::new::<T>();
+        let result_ptr = self.get_alloc_ptr(layout)?;
+
+        unsafe {
+            let result = result_ptr as *mut T;
+            ptr::write_bytes(result, 0, 1);
             Ok(&mut *result)
         }
     }

@@ -45,15 +45,15 @@ impl FixedArena {
     }
 
     // TODO: document me
-    fn get_alloc_ptr<T>(&self) -> Result<(*mut u8, Layout), AllocError> {
+    fn get_alloc_ptr<T>(&self) -> Result<*mut u8, AllocError> {
         let layout = Layout::new::<T>();
         let pointer = self.get_alloc_ptr_with_layout(layout)?;
-        Ok((pointer, layout))
+        Ok(pointer)
     }
 
     // TODO: document me
     pub fn alloc<T>(&self, val: T) -> Result<&mut T, AllocError> {
-        let (pointer, _) = self.get_alloc_ptr::<T>()?;
+        let pointer = self.get_alloc_ptr::<T>()?;
         unsafe {
             let result = pointer as *mut T;
             ptr::write(result, val);
@@ -63,10 +63,10 @@ impl FixedArena {
 
     // TODO: document me
     pub fn alloc_zeroed<T>(&self) -> Result<&mut T, AllocError> {
-        let (pointer, layout) = self.get_alloc_ptr::<T>()?;
+        let pointer = self.get_alloc_ptr::<T>()?;
         unsafe {
             let result = pointer as *mut T;
-            ptr::write_bytes(pointer, 0, layout.size());
+            ptr::write_bytes(result, 0, 1);
             Ok(&mut *result)
         }
     }

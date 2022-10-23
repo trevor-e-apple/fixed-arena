@@ -36,6 +36,17 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_alloc_zeroed() {
+        let page_size = get_page_size();
+        let arena = DynamicArena::with_capacity_reserve(page_size, page_size);
+        {
+            let test = arena.alloc_zeroed::<TestStruct>().unwrap();
+            assert!(test.x == 0.0);
+            assert!(test.y == 0.0);
+        }
+    }
+
     // Allocate until we have used all of the reserved space
     fn fill_arena(arena: &mut DynamicArena) {
         loop {
