@@ -199,6 +199,7 @@ mod tests {
     }
 
     /// test allocating memory that is a factor of the page size
+    /// this also tests allocating with no reserves left over
     #[test]
     fn test_alloc_struct_page_size_factor() {
         let page_size = get_page_size();
@@ -232,19 +233,21 @@ mod tests {
         assert_eq!(arena.committed.get(), arena.reserved);
     }
 
-    #[test]
-    fn test_alloc_over_committed() {
-        unimplemented!();
-    }
-
+    /// tests that the committed memory does not grow unnecessarily
+    /// and that it grows exactly when it runs out of memory
     #[test]
     fn test_alloc_to_capacity() {
-        todo!();
-    }
+        let page_size = get_page_size();
+        let arena =
+            DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
-    #[test]
-    fn test_alloc_no_reserves() {
-        todo!();
+        for _ in 0..page_size {
+            arena.alloc_zeroed::<u8>().unwrap();
+        }
+        assert_eq!(arena.committed.get(), page_size);
+
+        arena.alloc_zeroed::<u8>().unwrap();
+        assert!(arena.committed.get() > page_size);    
     }
 
     /// A test for initializing an arena where we requested < 1 page worth of
