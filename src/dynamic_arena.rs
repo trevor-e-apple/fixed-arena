@@ -247,21 +247,31 @@ mod tests {
         assert_eq!(arena.committed.get(), page_size);
 
         arena.alloc_zeroed::<u8>().unwrap();
-        assert!(arena.committed.get() > page_size);    
+        assert!(arena.committed.get() > page_size);
     }
 
     /// A test for initializing an arena where we requested < 1 page worth of
-    /// memory. The user should be able to use all the way up to one page
+    /// memory.
     #[test]
     fn test_alloc_under_page_size() {
-        todo!();
+        let page_size = get_page_size();
+        let mut arena =
+            DynamicArena::with_capacity_reserve(page_size / 2, page_size / 2);
+
+        fill_arena::<u8>(&mut arena, 0);
+        assert_eq!(arena.committed.get(), page_size / 2);
+        assert_eq!(arena.used.get(), page_size / 2);
     }
 
     /// A test for initializing an arena where we requested smaller reserves
     /// than the initial capacity
     #[test]
+    #[should_panic]
     fn test_arena_small_reserves() {
-        todo!();
+        let page_size = get_page_size();
+        let mut arena =
+            DynamicArena::with_capacity_reserve(page_size, page_size / 2);
+        arena.reset();
     }
 
     /// A test for initializing an arena where the reserves are not a multiple
