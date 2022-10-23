@@ -170,6 +170,34 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_shrink_to_zero() {
+        let page_size = get_page_size();
+        let mut arena =
+            DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
+
+        fill_arena(
+            &mut arena,
+            TestStruct {
+                ..Default::default()
+            },
+        );
+
+        // shrink to zero. nothing should be committed
+        arena.reset_and_shrink(0);
+        assert_eq!(arena.used.get(), 0);
+        assert_eq!(arena.committed.get(), 0);
+
+        // refill after shrink to zero
+        fill_arena(
+            &mut arena,
+            TestStruct {
+                ..Default::default()
+            },
+        );
+        assert_eq!(arena.committed.get(), arena.reserved);
+    }
+
     /// test allocating memory that is a factor of the page size
     #[test]
     fn test_alloc_struct_page_size_factor() {
@@ -202,11 +230,6 @@ mod tests {
                 < size_of::<ThreeByteStruct>()
         );
         assert_eq!(arena.committed.get(), arena.reserved);
-    }
-
-    #[test]
-    fn test_shrink_to_zero() {
-        unimplemented!();
     }
 
     #[test]
