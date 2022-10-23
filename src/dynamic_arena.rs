@@ -278,6 +278,12 @@ mod tests {
     /// of the page size
     #[test]
     fn test_arena_fractional_page() {
-        todo!();
+        let page_size = get_page_size();
+        let mut arena =
+            DynamicArena::with_capacity_reserve(page_size, 3 * page_size / 2);
+
+        fill_arena::<u8>(&mut arena, 0);
+        assert_eq!(arena.committed.get(), arena.reserved);
+        assert_eq!(arena.used.get(), arena.reserved);
     }
 }
