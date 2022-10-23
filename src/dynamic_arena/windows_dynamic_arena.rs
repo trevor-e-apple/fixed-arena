@@ -90,10 +90,7 @@ impl DynamicArena {
     }
 
     // TODO: document me
-    fn get_alloc_ptr(
-        &self,
-        layout: Layout,
-    ) -> Result<*mut u8, AllocError> {
+    fn get_alloc_ptr(&self, layout: Layout) -> Result<*mut u8, AllocError> {
         self.grow(layout.size())?;
 
         let result: *mut u8 =

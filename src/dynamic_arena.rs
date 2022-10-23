@@ -13,9 +13,13 @@ mod windows_dynamic_arena;
 
 #[cfg(test)]
 mod tests {
+    use std::mem::size_of;
+
     use super::*;
     use crate::{
-        errors::AllocError, platform::get_page_size, test_structs::TestStruct,
+        errors::AllocError,
+        platform::get_page_size,
+        test_structs::{TestStruct, ThreeByteStruct},
     };
 
     // TODO: document me
@@ -47,14 +51,14 @@ mod tests {
         }
     }
 
-    // Allocate until we have used all of the reserved space
-    fn fill_arena(arena: &mut DynamicArena) {
+    /// Allocate until we have used all of the reserved space
+    fn fill_arena<T>(arena: &mut DynamicArena, val: T)
+    where
+        T: Copy,
+    {
         loop {
-            match arena.alloc(TestStruct { x: 0.0, y: 0.0 }) {
-                Ok(test) => {
-                    assert!(test.x == 0.0);
-                    assert!(test.y == 0.0);
-                }
+            match arena.alloc(val) {
+                Ok(_) => {}
                 Err(err) => {
                     if err == AllocError::AtCapacity {
                         break;
@@ -72,7 +76,12 @@ mod tests {
         let mut arena =
             DynamicArena::with_capacity_reserve(page_size, page_size);
 
-        fill_arena(&mut arena);
+        fill_arena(
+            &mut arena,
+            TestStruct {
+                ..Default::default()
+            },
+        );
 
         arena.reset();
         assert_eq!(arena.used.get(), 0);
@@ -91,7 +100,12 @@ mod tests {
         let mut arena =
             DynamicArena::with_capacity_reserve(page_size, 2 * page_size);
 
-        fill_arena(&mut arena);
+        fill_arena(
+            &mut arena,
+            TestStruct {
+                ..Default::default()
+            },
+        );
 
         arena.reset();
         assert_eq!(arena.used.get(), 0);
@@ -110,7 +124,12 @@ mod tests {
         let mut arena =
             DynamicArena::with_capacity_reserve(page_size, 2 * page_size);
 
-        fill_arena(&mut arena);
+        fill_arena(
+            &mut arena,
+            TestStruct {
+                ..Default::default()
+            },
+        );
 
         arena.reset_and_shrink(page_size);
         assert_eq!(arena.used.get(), 0);
@@ -130,7 +149,12 @@ mod tests {
         let mut arena =
             DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
-        fill_arena(&mut arena);
+        fill_arena(
+            &mut arena,
+            TestStruct {
+                ..Default::default()
+            },
+        );
 
         // shrink to a size that is not a multiple of page size
         // should round up to the next page
@@ -146,10 +170,38 @@ mod tests {
         }
     }
 
-    // test allocating memory that is not a factor of the page size
+    /// test allocating memory that is a factor of the page size
+    #[test]
+    fn test_alloc_struct_page_size_factor() {
+        let page_size = get_page_size();
+        let mut arena =
+            DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
+
+        fill_arena::<u8>(&mut arena, 0);
+        assert_eq!(arena.used.get(), arena.committed.get());
+        assert_eq!(arena.committed.get(), arena.reserved);
+    }
+
+    /// test allocating memory that is not a factor of the page size
     #[test]
     fn test_alloc_struct_not_page_size_factor() {
-        unimplemented!();
+        let page_size = get_page_size();
+        let mut arena =
+            DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
+
+        fill_arena(
+            &mut arena,
+            ThreeByteStruct {
+                ..Default::default()
+            },
+        );
+        assert!(arena.used.get() < arena.committed.get());
+        // check that all of the memory that could have been used was used
+        assert!(
+            (arena.committed.get() - arena.used.get())
+                < size_of::<ThreeByteStruct>()
+        );
+        assert_eq!(arena.committed.get(), arena.reserved);
     }
 
     #[test]
