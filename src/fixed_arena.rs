@@ -164,30 +164,6 @@ mod tests {
         TestStruct,
     };
 
-    // TODO: document me
-    #[test]
-    fn test_async() {
-        todo!();
-    }
-
-    // TODO: document me
-    #[test]
-    fn threading() {
-        todo!();
-    }
-
-    // TODO: document me
-    #[test]
-    fn very_large_arena() {
-        todo!();
-    }
-
-    // TODO: document me
-    #[test]
-    fn alignment() {
-        todo!();
-    }
-
     mod reset {
         use super::*;
 
