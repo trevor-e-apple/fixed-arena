@@ -168,6 +168,26 @@ impl DynamicArena {
         Ok(result)
     }
 
+    pub fn alloc_uninitialized_array<T>(
+        &self,
+        count: usize,
+    ) -> Result<&mut [T], AllocError>
+    where
+        T: Clone,
+    {
+        let layout =
+            Layout::array::<T>(count).expect("Bad count value for array");
+        let result_ptr = self.get_alloc_ptr(layout)?;
+
+        let result: &mut [T];
+        unsafe {
+            let pointer = result_ptr as *mut T;
+            result = slice::from_raw_parts_mut(pointer, count);
+        }
+
+        Ok(result)
+    }
+
     // TODO: more documentation, examples
     /// Reset the arena. Set the used value to 0
     pub fn reset(&mut self) {
@@ -180,22 +200,25 @@ impl DynamicArena {
     pub fn reset_and_shrink(&mut self, new_size: usize) {
         self.reset();
 
-        let remainder = new_size % self.page_size;
-        let free_from = if remainder == 0 {
-            new_size
-        } else {
-            new_size + remainder
-        };
-
-        unsafe {
-            VirtualFree(
-                self.base.offset(free_from as isize) as *mut c_void,
-                self.committed.get(),
-                MEM_DECOMMIT,
-            );
-            // TODO: error handling
+        // we only have to shrink if new_size is less than the committed size
+        if new_size < self.committed.get() {
+            let remainder = new_size % self.page_size;
+            let free_from = if remainder == 0 {
+                new_size
+            } else {
+                new_size + remainder
+            };
+            let free_to = self.reserved - free_from;
+            unsafe {
+                VirtualFree(
+                    self.base.offset(free_from as isize) as *mut c_void,
+                    free_to,
+                    MEM_DECOMMIT,
+                );
+                // TODO: error handling
+            }
+            self.committed.set(free_from);
         }
-        self.committed.set(free_from);
     }
 }
 

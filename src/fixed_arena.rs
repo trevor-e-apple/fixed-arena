@@ -172,19 +172,19 @@ mod tests {
 
     // TODO: document me
     #[test]
-    fn test_threading() {
+    fn threading() {
         todo!();
     }
 
     // TODO: document me
     #[test]
-    fn test_very_large_arena() {
+    fn very_large_arena() {
         todo!();
     }
 
     // TODO: document me
     #[test]
-    fn test_alignment() {
+    fn alignment() {
         todo!();
     }
 
@@ -193,7 +193,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_reset() {
+        fn reset() {
             let mut arena = FixedArena::with_capacity(1024, DEFAULT_ALIGN);
             {
                 arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
@@ -211,7 +211,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_reset_with_mut() {
+        fn reset_with_mut() {
             let mut arena = FixedArena::with_capacity(1024, DEFAULT_ALIGN);
 
             {
@@ -236,7 +236,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_reset_in_loop() {
+        fn reset_in_loop() {
             let capacity = 1024;
             let mut arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             for index in 0..capacity {
@@ -254,7 +254,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_basic_allocation() {
+        fn basic_allocation() {
             let arena = FixedArena::with_capacity(1024, DEFAULT_ALIGN);
             {
                 let test = arena.alloc(TestStruct { x: 0.0, y: 0.0 }).unwrap();
@@ -265,7 +265,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_alloc_zeroed() {
+        fn alloc_zeroed() {
             let arena = FixedArena::with_capacity(1024, DEFAULT_ALIGN);
             {
                 let test = arena.alloc_zeroed::<TestStruct>().unwrap();
@@ -276,7 +276,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_multiple_allocation() {
+        fn multiple_allocation() {
             let arena = FixedArena::with_capacity(1024, DEFAULT_ALIGN);
 
             {
@@ -293,7 +293,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_mixed_allocation() {
+        fn mixed_allocation() {
             let arena = FixedArena::with_capacity(1024, DEFAULT_ALIGN);
 
             let first = TestStruct { x: 1.0, y: -1.0 };
@@ -335,7 +335,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_at_capacity() {
+        fn at_capacity() {
             let capacity = 1024;
             let count = capacity / size_of::<TestStruct>();
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
@@ -349,7 +349,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_reset_at_capacity() {
+        fn reset_at_capacity() {
             let capacity = 1024;
             let count = capacity;
             let mut arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
@@ -372,7 +372,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_over_capacity() {
+        fn over_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<TestStruct>();
@@ -390,7 +390,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_at_capacity_alloc_zeroed() {
+        fn at_capacity_alloc_zeroed() {
             let capacity = 1024;
             let count = capacity / size_of::<TestStruct>();
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
@@ -403,7 +403,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_reset_at_capacity_alloc_zeroed() {
+        fn reset_at_capacity_alloc_zeroed() {
             let capacity = 1024;
             let count = capacity;
             let mut arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
@@ -426,7 +426,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_over_capacity_alloc_zeroed() {
+        fn over_capacity_alloc_zeroed() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<TestStruct>();
@@ -459,7 +459,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_alloc_array() {
+        fn alloc_array() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let test_array =
@@ -469,7 +469,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_alloc_multiple_arrays() {
+        fn alloc_multiple_arrays() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / (2 * size_of::<I32Struct>());
@@ -483,7 +483,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_alloc_array_to_capacity() {
+        fn alloc_array_to_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<I32Struct>();
@@ -495,7 +495,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_alloc_array_over_capacity() {
+        fn alloc_array_over_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let result = arena.alloc_array(
@@ -507,7 +507,7 @@ mod tests {
 
         // TODO: document me
         #[test]
-        fn test_alloc_array_to_capacity_reset() {
+        fn alloc_array_to_capacity_reset() {
             let capacity = 1024;
             let count = capacity / size_of::<TestStruct>();
             let mut arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
@@ -530,7 +530,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_zeroed_array() {
+        fn alloc_zeroed_array() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let test_array = arena.alloc_zeroed_array::<I32Struct>(8).unwrap();
@@ -541,7 +541,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_multiple_zeroed_array() {
+        fn alloc_multiple_zeroed_array() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / (2 * size_of::<I32Struct>());
@@ -557,7 +557,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_zeroed_array_to_capacity() {
+        fn alloc_zeroed_array_to_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<I32Struct>();
@@ -568,7 +568,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_zeroed_array_over_capacity() {
+        fn alloc_zeroed_array_over_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = (capacity / size_of::<I32Struct>()) + 1;
@@ -579,7 +579,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_zeroed_array_to_capacity_reset() {
+        fn alloc_zeroed_array_to_capacity_reset() {
             let capacity = 1024;
             let mut arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<I32Struct>();
@@ -598,7 +598,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_unitialized_array() {
+        fn alloc_unitialized_array() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let array =
@@ -608,7 +608,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_multiple_unitialized_array() {
+        fn alloc_multiple_unitialized_array() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / (2 * size_of::<I32Struct>());
@@ -621,7 +621,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_unitialized_array_to_capacity() {
+        fn alloc_unitialized_array_to_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<I32Struct>();
@@ -632,7 +632,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_unitialized_array_over_capacity() {
+        fn alloc_unitialized_array_over_capacity() {
             let capacity = 1024;
             let arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<I32Struct>() + 1;
@@ -642,7 +642,7 @@ mod tests {
         }
 
         #[test]
-        fn test_alloc_unitialized_array_to_capacity_reset() {
+        fn alloc_unitialized_array_to_capacity_reset() {
             let capacity = 1024;
             let mut arena = FixedArena::with_capacity(capacity, DEFAULT_ALIGN);
             let count = capacity / size_of::<I32Struct>();
@@ -756,16 +756,21 @@ mod tests {
     #[cfg(test)]
     mod benchmark {
         use super::*;
+        use crate::platform::get_page_size;
         use std::vec::Vec;
         use test::Bencher;
 
-        const ELEMENT_COUNT: usize = 1024;
+        // TODO: make this common between the different test suites
+        fn get_element_count() -> usize {
+            4 * get_page_size()
+        }
 
         #[bench]
-        fn bench_std_alloc_push(b: &mut Bencher) {
+        fn std_alloc_push(b: &mut Bencher) {
+            let element_count = get_element_count();
             b.iter(|| {
                 let mut elements: Vec<I32Struct> = Vec::new();
-                for _ in 0..ELEMENT_COUNT {
+                for _ in 0..element_count {
                     elements.push(I32Struct { x: 0, y: 0 });
                 }
                 for (index, element) in elements.iter_mut().enumerate() {
@@ -777,11 +782,12 @@ mod tests {
 
         // TODO: this is not specific to this arena. move
         #[bench]
-        fn bench_std_alloc(b: &mut Bencher) {
+        fn std_alloc(b: &mut Bencher) {
+            let element_count = get_element_count();
             b.iter(|| {
                 let mut elements: Vec<I32Struct> =
-                    Vec::with_capacity(ELEMENT_COUNT);
-                for _ in 0..ELEMENT_COUNT {
+                    Vec::with_capacity(element_count);
+                for _ in 0..element_count {
                     elements.push(I32Struct { x: 0, y: 0 });
                 }
                 for (index, element) in elements.iter_mut().enumerate() {
@@ -792,15 +798,16 @@ mod tests {
         }
 
         #[bench]
-        fn bench_arena_alloc(b: &mut Bencher) {
+        fn arena_alloc(b: &mut Bencher) {
+            let element_count = get_element_count();
             let mut arena = FixedArena::with_capacity(
-                ELEMENT_COUNT * size_of::<I32Struct>(),
+                element_count * size_of::<I32Struct>(),
                 DEFAULT_ALIGN,
             );
 
             b.iter(|| {
                 let elements = arena
-                    .alloc_zeroed_array::<I32Struct>(ELEMENT_COUNT)
+                    .alloc_zeroed_array::<I32Struct>(element_count)
                     .unwrap();
                 for (index, element) in elements.iter_mut().enumerate() {
                     element.x = index as i32;
@@ -829,18 +836,19 @@ mod tests {
         }
 
         #[bench]
-        fn bench_std_alloc_mixed(b: &mut Bencher) {
+        fn std_alloc_mixed(b: &mut Bencher) {
+            let element_count = get_element_count();
             b.iter(|| {
                 let mut a: Box<I32Struct> = Box::new(Default::default());
                 let mut b: Box<LargerStruct> = Box::new(Default::default());
-                let mut b1: Vec<I32Struct> = Vec::with_capacity(ELEMENT_COUNT);
+                let mut b1: Vec<I32Struct> = Vec::with_capacity(element_count);
                 let mut c: Box<MixedStruct> = Box::new(Default::default());
                 let mut d: Box<SmallerStruct> = Box::new(Default::default());
                 let mut e: SmallStruct = Default::default();
                 let mut f: MixedStruct = Default::default();
                 let mut g: I32Struct = Default::default();
 
-                for _ in 0..ELEMENT_COUNT {
+                for _ in 0..element_count {
                     b1.push(I32Struct { x: 0, y: 0 });
                 }
 
@@ -852,16 +860,17 @@ mod tests {
         }
 
         #[bench]
-        fn bench_arena_alloc_mixed(b: &mut Bencher) {
+        fn arena_alloc_mixed(b: &mut Bencher) {
+            let element_count = get_element_count();
             let mut arena = FixedArena::with_capacity(
-                ELEMENT_COUNT * size_of::<I32Struct>() + 2048,
+                element_count * size_of::<I32Struct>() + 2048,
                 DEFAULT_ALIGN,
             );
             b.iter(|| {
                 let a = arena.alloc_zeroed::<I32Struct>().unwrap();
                 let b = arena.alloc_zeroed::<LargerStruct>().unwrap();
                 let b1 = arena
-                    .alloc_zeroed_array::<I32Struct>(ELEMENT_COUNT)
+                    .alloc_zeroed_array::<I32Struct>(element_count)
                     .unwrap();
                 let c = arena.alloc_zeroed::<MixedStruct>().unwrap();
                 let d = arena.alloc_zeroed::<SmallerStruct>().unwrap();
