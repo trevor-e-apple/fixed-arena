@@ -147,6 +147,27 @@ impl DynamicArena {
         Ok(result)
     }
 
+    pub fn alloc_zeroed_array<T>(
+        &self,
+        count: usize,
+    ) -> Result<&mut [T], AllocError>
+    where
+        T: Clone,
+    {
+        let layout =
+            Layout::array::<T>(count).expect("Bad count value for array");
+        let result_ptr = self.get_alloc_ptr(layout)?;
+
+        let result: &mut [T];
+        unsafe {
+            let pointer = result_ptr as *mut T;
+            ptr::write_bytes(pointer, 0, count);
+            result = slice::from_raw_parts_mut(pointer, count);
+        }
+
+        Ok(result)
+    }
+
     // TODO: more documentation, examples
     /// Reset the arena. Set the used value to 0
     pub fn reset(&mut self) {

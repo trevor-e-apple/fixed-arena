@@ -19,7 +19,7 @@ mod tests {
     use crate::{
         errors::AllocError,
         platform::get_page_size,
-        test_structs::{TestStruct, ThreeByteStruct},
+        test_structs::{I32Struct, TestStruct, ThreeByteStruct},
     };
 
     mod alloc_struct {
@@ -321,6 +321,45 @@ mod tests {
                 .unwrap();
             for element in test.iter() {
                 assert_eq!(*element, init_value);
+            }
+            assert_eq!(arena.used.get(), arena.committed.get());
+            assert_eq!(arena.committed.get(), arena.reserved);
+        }
+
+        #[test]
+        fn test_alloc_array_non_default() {
+            let page_size = get_page_size();
+            let arena =
+                DynamicArena::with_capacity_reserve(page_size, page_size);
+
+            let init_value = TestStruct { x: 1.0, y: 2.0 };
+            let test = arena
+                .alloc_array(
+                    init_value,
+                    arena.reserved / size_of::<TestStruct>(),
+                )
+                .unwrap();
+            for element in test.iter() {
+                assert_eq!(*element, init_value);
+            }
+            assert_eq!(arena.used.get(), arena.committed.get());
+            assert_eq!(arena.committed.get(), arena.reserved);
+        }
+
+        #[test]
+        fn test_alloc_zeroed_array() {
+            let page_size = get_page_size();
+            let arena =
+                DynamicArena::with_capacity_reserve(page_size, page_size);
+
+            let test = arena
+                .alloc_zeroed_array::<I32Struct>(
+                    arena.reserved / size_of::<I32Struct>(),
+                )
+                .unwrap();
+            for element in test.iter() {
+                assert_eq!(element.x, 0);
+                assert_eq!(element.y, 0);
             }
             assert_eq!(arena.used.get(), arena.committed.get());
             assert_eq!(arena.committed.get(), arena.reserved);
