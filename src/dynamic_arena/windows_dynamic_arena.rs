@@ -1,5 +1,5 @@
 use core::cell::Cell;
-use std::{alloc::Layout, ffi::c_void, ptr};
+use std::{alloc::Layout, ffi::c_void, ptr, slice};
 
 use windows::Win32::System::Memory::{
     VirtualAlloc, VirtualFree, MEM_COMMIT, MEM_DECOMMIT, MEM_RELEASE,
@@ -120,6 +120,31 @@ impl DynamicArena {
             ptr::write_bytes(result, 0, 1);
             Ok(&mut *result)
         }
+    }
+
+    pub fn alloc_array<T>(
+        &self,
+        val: T,
+        count: usize,
+    ) -> Result<&mut [T], AllocError>
+    where
+        T: Clone,
+    {
+        let layout =
+            Layout::array::<T>(count).expect("Bad count value for array");
+        let result_ptr = self.get_alloc_ptr(layout)?;
+
+        let result: &mut [T];
+        unsafe {
+            let pointer = result_ptr as *mut T;
+            let isize_count = count as isize;
+            for index in 0..isize_count {
+                ptr::write(pointer.offset(index), val.clone());
+            }
+            result = slice::from_raw_parts_mut(pointer, count);
+        }
+
+        Ok(result)
     }
 
     // TODO: more documentation, examples
