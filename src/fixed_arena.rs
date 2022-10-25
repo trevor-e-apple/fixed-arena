@@ -34,10 +34,11 @@ impl FixedArena {
         &self,
         layout: Layout,
     ) -> Result<*mut u8, AllocError> {
-        let result: *mut u8 =
-            unsafe { self.base.offset(self.used.get() as isize) };
-        self.used.set(self.used.get() + layout.size());
-        if self.used.get() <= self.capacity {
+        let new_used = self.used.get() + layout.size();
+        if new_used <= self.capacity {
+            let result: *mut u8 =
+                unsafe { self.base.offset(self.used.get() as isize) };
+            self.used.set(new_used);
             Ok(result)
         } else {
             Err(AllocError::AtCapacity)
@@ -159,7 +160,7 @@ mod tests {
     use std::{cmp::PartialEq, mem::size_of};
     const DEFAULT_ALIGN: usize = 4;
 
-    use crate::test_structs::{
+    use crate::test_common::{
         I32Struct, LargerStruct, MixedStruct, SmallStruct, SmallerStruct,
         TestStruct,
     };
@@ -224,7 +225,6 @@ mod tests {
         }
     }
 
-    #[cfg(test)]
     mod alloc_struct {
         use super::*;
 
@@ -429,7 +429,6 @@ mod tests {
         }
     }
 
-    #[cfg(test)]
     mod alloc_array {
         use super::*;
 
@@ -729,44 +728,10 @@ mod tests {
         }
     }
 
-    #[cfg(test)]
     mod benchmark {
         use super::*;
         use crate::test_common::get_element_count;
-        use std::vec::Vec;
         use test::Bencher;
-
-        #[bench]
-        fn std_alloc_push(b: &mut Bencher) {
-            let element_count = get_element_count();
-            b.iter(|| {
-                let mut elements: Vec<I32Struct> = Vec::new();
-                for _ in 0..element_count {
-                    elements.push(I32Struct { x: 0, y: 0 });
-                }
-                for (index, element) in elements.iter_mut().enumerate() {
-                    element.x = index as i32;
-                    element.y = -1 * (index as i32);
-                }
-            });
-        }
-
-        // TODO: this is not specific to this arena. move
-        #[bench]
-        fn std_alloc(b: &mut Bencher) {
-            let element_count = get_element_count();
-            b.iter(|| {
-                let mut elements: Vec<I32Struct> =
-                    Vec::with_capacity(element_count);
-                for _ in 0..element_count {
-                    elements.push(I32Struct { x: 0, y: 0 });
-                }
-                for (index, element) in elements.iter_mut().enumerate() {
-                    element.x = index as i32;
-                    element.y = -1 * (index as i32);
-                }
-            });
-        }
 
         #[bench]
         fn arena_alloc(b: &mut Bencher) {
@@ -804,30 +769,6 @@ mod tests {
             e.y += 2;
             f.a += 2;
             g.x += 2;
-        }
-
-        #[bench]
-        fn std_alloc_mixed(b: &mut Bencher) {
-            let element_count = get_element_count();
-            b.iter(|| {
-                let mut a: Box<I32Struct> = Box::new(Default::default());
-                let mut b: Box<LargerStruct> = Box::new(Default::default());
-                let mut b1: Vec<I32Struct> = Vec::with_capacity(element_count);
-                let mut c: Box<MixedStruct> = Box::new(Default::default());
-                let mut d: Box<SmallerStruct> = Box::new(Default::default());
-                let mut e: SmallStruct = Default::default();
-                let mut f: MixedStruct = Default::default();
-                let mut g: I32Struct = Default::default();
-
-                for _ in 0..element_count {
-                    b1.push(I32Struct { x: 0, y: 0 });
-                }
-
-                mutate_mixed_data(
-                    &mut a, &mut b, &mut c, &mut d, &mut e, &mut f, &mut g,
-                );
-                g.x += b1.len() as i32;
-            });
         }
 
         #[bench]

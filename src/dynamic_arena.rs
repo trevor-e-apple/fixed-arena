@@ -19,7 +19,7 @@ mod tests {
     use crate::{
         errors::AllocError,
         platform::get_page_size,
-        test_structs::{
+        test_common::{
             I32Struct, LargerStruct, MixedStruct, SmallStruct, SmallerStruct,
             TestStruct, ThreeByteStruct,
         },
@@ -434,8 +434,8 @@ mod tests {
 
     mod benchmark {
         use super::*;
-        use test::Bencher;
         use crate::test_common::get_element_count;
+        use test::Bencher;
 
         #[bench]
         fn arena_alloc_no_growth(b: &mut Bencher) {
