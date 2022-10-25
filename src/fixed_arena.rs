@@ -732,14 +732,9 @@ mod tests {
     #[cfg(test)]
     mod benchmark {
         use super::*;
-        use crate::platform::get_page_size;
+        use crate::test_common::get_element_count;
         use std::vec::Vec;
         use test::Bencher;
-
-        // TODO: make this common between the different test suites
-        fn get_element_count() -> usize {
-            4 * get_page_size()
-        }
 
         #[bench]
         fn std_alloc_push(b: &mut Bencher) {

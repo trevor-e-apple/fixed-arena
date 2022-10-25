@@ -6,5 +6,7 @@ pub mod errors;
 pub mod fixed_arena;
 pub mod platform;
 
-// test modules
+#[cfg(test)]
+mod test_common;
+#[cfg(test)]
 mod test_structs;

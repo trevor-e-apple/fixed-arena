@@ -435,10 +435,7 @@ mod tests {
     mod benchmark {
         use super::*;
         use test::Bencher;
-
-        fn get_element_count() -> usize {
-            4 * get_page_size()
-        }
+        use crate::test_common::get_element_count;
 
         #[bench]
         fn arena_alloc_no_growth(b: &mut Bencher) {

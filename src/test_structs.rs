@@ -1,3 +1,5 @@
+// THIS CODE SHOULD BE AN EXACT COPY OF tests/test_structs.rs
+
 use std::cmp::PartialEq;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
