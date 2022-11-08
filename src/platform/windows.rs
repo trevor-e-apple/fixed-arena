@@ -8,65 +8,62 @@ use windows::Win32::System::{
     SystemInformation::{GetSystemInfo, SYSTEM_INFO},
 };
 
-// TODO: document me
-pub fn get_page_size() -> usize {
-    let page_size: u32;
-    unsafe {
-        let mut system_info = SYSTEM_INFO {
-            ..Default::default()
-        };
-        GetSystemInfo(addr_of_mut!(system_info));
-        page_size = system_info.dwPageSize;
+use crate::platform::{Functions, functions};
+
+impl Functions for functions {
+    fn get_page_size() -> usize {
+        let page_size: u32;
+        unsafe {
+            let mut system_info = SYSTEM_INFO {
+                ..Default::default()
+            };
+            GetSystemInfo(addr_of_mut!(system_info));
+            page_size = system_info.dwPageSize;
+        }
+
+        page_size as usize
     }
 
-    page_size as usize
-}
+    unsafe fn reserve(reserved: usize) -> *mut u8 {
+        VirtualAlloc(
+            None, // let the system allocate the region
+            reserved,
+            MEM_RESERVE,
+            PAGE_READWRITE,
+        ) as *mut u8
+    }
 
-// TODO: finish documenting me
-// TODO: handle errors from system
-/// Reserves a section of virtual memory on the system
-pub unsafe fn reserve(reserved: usize) -> *mut u8 {
-    VirtualAlloc(
-        None, // let the system allocate the region
-        reserved,
-        MEM_RESERVE,
-        PAGE_READWRITE,
-    ) as *mut u8
-}
+    unsafe fn release(base: *mut u8) {
+        VirtualFree(base as *mut c_void, 0, MEM_RELEASE);
+    }
 
-// TODO: finish documenting me
-/// Releases the reservation that the application has for a section of virtual
-/// memory on the system
-pub unsafe fn release(base: *mut u8) {
-    VirtualFree(base as *mut c_void, 0, MEM_RELEASE);
-}
+    // TODO: finish documenting me
+    // TODO: handle errors from system
+    /// Commits a portion of virtual memory, starting from base and ending at
+    /// base + size
+    /// If a page in the range is already committed, it remains committed without
+    /// issue
+    unsafe fn commit(base: *mut u8, size: usize) {
+        /*
+        From microsoft docs on VirtualAlloc:
+        "VirtualAlloc...can commit a page that is already committed.
+        This means you can commit a range of pages, regardless of whether
+        they have already been committed, and the function will not fail."
+        */
+        VirtualAlloc(
+            Some(base as *const c_void),
+            size,
+            MEM_COMMIT,
+            PAGE_READWRITE,
+        );
+    }
 
-// TODO: finish documenting me
-// TODO: handle errors from system
-/// Commits a portion of virtual memory, starting from base and ending at
-/// base + size
-/// If a page in the range is already committed, it remains committed without
-/// issue
-pub unsafe fn commit(base: *mut u8, size: usize) {
-    /*
-    From microsoft docs on VirtualAlloc:
-    "VirtualAlloc...can commit a page that is already committed.
-    This means you can commit a range of pages, regardless of whether
-    they have already been committed, and the function will not fail."
-    */
-    VirtualAlloc(
-        Some(base as *const c_void),
-        size,
-        MEM_COMMIT,
-        PAGE_READWRITE,
-    );
-}
-
-// TODO: finish documenting me
-pub unsafe fn decommit(base: *mut u8, free_from: usize, free_to: usize) {
-    VirtualFree(
-        base.offset(free_from as isize) as *mut c_void,
-        free_to,
-        MEM_DECOMMIT,
-    );
+    // TODO: finish documenting me
+    unsafe fn decommit(base: *mut u8, free_from: usize, free_to: usize) {
+        VirtualFree(
+            base.offset(free_from as isize) as *mut c_void,
+            free_to,
+            MEM_DECOMMIT,
+        );
+    }
 }

@@ -14,5 +14,8 @@ features = [
 	"Win32_System_Diagnostics_Debug"
 ]
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 bumpalo = "3.11.1"
