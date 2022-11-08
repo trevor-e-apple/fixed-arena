@@ -1,10 +1,10 @@
 use libc;
 
-use crate::platform::{Functions, FunctionsTrait};
+use crate::platform::{FunctionsTrait, Platform};
 
-impl FunctionsTrait for Functions {
+impl FunctionsTrait for Platform {
     fn get_page_size() -> usize {
-        unsafe {libc::sysconf(libc::_SC_PAGESIZE) as usize}
+        unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
     }
 
     unsafe fn reserve(reserved: usize) -> *mut u8 {

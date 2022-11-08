@@ -10,9 +10,8 @@ pub struct DynamicArena {
 
 use std::{alloc::Layout, ptr, slice};
 
-use crate::{errors::AllocError};
-use crate::platform::Functions as platform;
-use crate::platform::FunctionsTrait;
+use crate::errors::AllocError;
+use crate::platform::{FunctionsTrait, Platform};
 
 impl DynamicArena {
     // TODO: more documentation with details on page sizes, and difference between
@@ -27,14 +26,14 @@ impl DynamicArena {
 
         let base: *mut u8;
         unsafe {
-            base = platform::reserve(reserved);
+            base = Platform::reserve(reserved);
 
-            platform::commit(base, capacity);
+            Platform::commit(base, capacity);
 
             // TODO: error handling
         }
 
-        let page_size = platform::get_page_size();
+        let page_size = Platform::get_page_size();
         DynamicArena {
             base,
             reserved,
@@ -59,7 +58,7 @@ impl DynamicArena {
                 self.reserved
             };
             unsafe {
-                platform::commit(self.base, mem_to_commit);
+                Platform::commit(self.base, mem_to_commit);
                 // TODO: error handling
             }
             self.committed.set(mem_to_commit);
@@ -191,7 +190,7 @@ impl DynamicArena {
             };
             let free_to = self.reserved - free_from;
             unsafe {
-                platform::decommit(self.base, free_from, free_to);
+                Platform::decommit(self.base, free_from, free_to);
                 // TODO: error handling
             }
             self.committed.set(free_from);
@@ -208,7 +207,7 @@ impl Drop for DynamicArena {
         initial allocation call to VirtualAlloc.
         */
         unsafe {
-            platform::release(self.base);
+            Platform::release(self.base);
         }
     }
 }
@@ -218,6 +217,7 @@ mod tests {
     use std::mem::size_of;
 
     use super::*;
+    use crate::platform::{FunctionsTrait, Platform};
     use crate::{
         errors::AllocError,
         test_common::{
@@ -225,15 +225,13 @@ mod tests {
             TestStruct, ThreeByteStruct,
         },
     };
-    use crate::platform::Functions as platform;
-    use crate::platform::FunctionsTrait;
 
     mod alloc_struct {
         use super::*;
 
         #[test]
         fn alloc() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
             {
@@ -245,7 +243,7 @@ mod tests {
 
         #[test]
         fn alloc_zeroed() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
             {
@@ -262,7 +260,7 @@ mod tests {
         // TODO: document me
         #[test]
         fn with_capacity_reserve() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             DynamicArena::with_capacity_reserve(page_size, page_size);
         }
 
@@ -287,7 +285,7 @@ mod tests {
 
         #[test]
         fn reset() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
 
@@ -311,7 +309,7 @@ mod tests {
 
         #[test]
         fn reset_without_shrink() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, 2 * page_size);
 
@@ -335,7 +333,7 @@ mod tests {
 
         #[test]
         fn reset_and_shrink() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, 2 * page_size);
 
@@ -362,7 +360,7 @@ mod tests {
         /// memory
         #[test]
         fn shrink_to_reserve_size() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let reserve_size = 2 * page_size;
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, reserve_size);
@@ -386,7 +384,7 @@ mod tests {
         /// committed. The committed value should not increase
         #[test]
         fn shrink_to_reserve_size_under_committed() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let reserve_size = 2 * page_size;
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, reserve_size);
@@ -407,7 +405,7 @@ mod tests {
 
         #[test]
         fn reset_and_shrink_page_offset() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
@@ -434,7 +432,7 @@ mod tests {
 
         #[test]
         fn shrink_to_zero() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
@@ -464,7 +462,7 @@ mod tests {
         /// this also tests allocating with no reserves left over
         #[test]
         fn alloc_struct_page_size_factor() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
@@ -476,7 +474,7 @@ mod tests {
         /// test allocating memory that is not a factor of the page size
         #[test]
         fn alloc_struct_not_page_size_factor() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
@@ -499,7 +497,7 @@ mod tests {
         /// and that it grows exactly when it runs out of memory
         #[test]
         fn alloc_to_capacity() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, 4 * page_size);
 
@@ -516,7 +514,7 @@ mod tests {
         /// memory.
         #[test]
         fn alloc_under_page_size() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena = DynamicArena::with_capacity_reserve(
                 page_size / 2,
                 page_size / 2,
@@ -532,7 +530,7 @@ mod tests {
         #[test]
         #[should_panic]
         fn arena_small_reserves() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size / 2);
             arena.reset();
@@ -542,7 +540,7 @@ mod tests {
         /// of the page size
         #[test]
         fn arena_fractional_page() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let mut arena = DynamicArena::with_capacity_reserve(
                 page_size,
                 3 * page_size / 2,
@@ -559,7 +557,7 @@ mod tests {
 
         #[test]
         fn alloc_array() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
 
@@ -581,7 +579,7 @@ mod tests {
 
         #[test]
         fn alloc_array_non_default() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
 
@@ -601,7 +599,7 @@ mod tests {
 
         #[test]
         fn alloc_zeroed_array() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
 
@@ -620,7 +618,7 @@ mod tests {
 
         #[test]
         fn alloc_uninitialized_array() {
-            let page_size = platform::get_page_size();
+            let page_size = Platform::get_page_size();
             let arena =
                 DynamicArena::with_capacity_reserve(page_size, page_size);
 
