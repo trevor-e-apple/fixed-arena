@@ -11,7 +11,7 @@ pub struct DynamicArena {
 use std::{alloc::Layout, ptr, slice};
 
 use crate::errors::AllocError;
-use crate::platform::{FunctionsTrait, Platform};
+use crate::platform::{Functions, Platform};
 
 impl DynamicArena {
     // TODO: more documentation with details on page sizes, and difference between
@@ -188,9 +188,9 @@ impl DynamicArena {
             } else {
                 new_size + remainder
             };
-            let free_to = self.reserved - free_from;
+            let free_size = self.reserved - free_from;
             unsafe {
-                Platform::decommit(self.base, free_from, free_to);
+                Platform::decommit(self.base, free_from, free_size);
                 // TODO: error handling
             }
             self.committed.set(free_from);
@@ -207,7 +207,7 @@ impl Drop for DynamicArena {
         initial allocation call to VirtualAlloc.
         */
         unsafe {
-            Platform::release(self.base);
+            Platform::release(self.base, self.reserved);
         }
     }
 }
@@ -217,7 +217,7 @@ mod tests {
     use std::mem::size_of;
 
     use super::*;
-    use crate::platform::{FunctionsTrait, Platform};
+    use crate::platform::{Functions, Platform};
     use crate::{
         errors::AllocError,
         test_common::{

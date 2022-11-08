@@ -33,7 +33,7 @@ impl Functions for Platform {
         ) as *mut u8
     }
 
-    unsafe fn release(base: *mut u8) {
+    unsafe fn release(base: *mut u8, size: usize) {
         VirtualFree(base as *mut c_void, 0, MEM_RELEASE);
     }
 
@@ -59,10 +59,10 @@ impl Functions for Platform {
     }
 
     // TODO: finish documenting me
-    unsafe fn decommit(base: *mut u8, free_from: usize, free_to: usize) {
+    unsafe fn decommit(base: *mut u8, free_from: usize, free_size: usize) {
         VirtualFree(
             base.offset(free_from as isize) as *mut c_void,
-            free_to,
+            free_size,
             MEM_DECOMMIT,
         );
     }

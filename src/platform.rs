@@ -6,7 +6,7 @@ mod unix;
 
 pub struct Platform;
 
-pub trait FunctionsTrait {
+pub trait Functions {
     // TODO: document me
     fn get_page_size() -> usize;
 
@@ -16,9 +16,10 @@ pub trait FunctionsTrait {
     unsafe fn reserve(reserved: usize) -> *mut u8;
 
     // TODO: finish documenting me
+    // TODO: handle errors from system
     /// Releases the reservation that the application has for a section of
     /// virtual memory on the system
-    unsafe fn release(base: *mut u8);
+    unsafe fn release(base: *mut u8, size: usize);
 
     // TODO: finish documenting me
     // TODO: handle errors from system
@@ -29,5 +30,6 @@ pub trait FunctionsTrait {
     unsafe fn commit(base: *mut u8, size: usize);
 
     // TODO: finish documenting me
-    unsafe fn decommit(base: *mut u8, free_from: usize, free_to: usize);
+    // TODO: handle errors from the system
+    unsafe fn decommit(base: *mut u8, free_from: usize, free_size: usize);
 }
