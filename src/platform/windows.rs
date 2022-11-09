@@ -33,7 +33,7 @@ impl PlatformFunctions for Platform {
         ) as *mut u8
     }
 
-    unsafe fn release(base: *mut u8, size: usize) {
+    unsafe fn release(base: *mut u8, _size: usize) {
         VirtualFree(base as *mut c_void, 0, MEM_RELEASE);
     }
 
