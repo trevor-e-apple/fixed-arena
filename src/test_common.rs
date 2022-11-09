@@ -1,4 +1,4 @@
-use crate::platform::get_page_size;
+use crate::platform::{Platform, PlatformFunctions};
 use std::cmp::PartialEq;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -51,5 +51,5 @@ pub struct ThreeByteStruct {
 }
 
 pub fn get_element_count() -> usize {
-    4 * get_page_size()
+    4 * Platform::get_page_size()
 }

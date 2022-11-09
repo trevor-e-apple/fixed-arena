@@ -6,7 +6,7 @@ mod unix;
 
 pub struct Platform;
 
-pub trait Functions {
+pub trait PlatformFunctions {
     // TODO: document me
     fn get_page_size() -> usize;
 

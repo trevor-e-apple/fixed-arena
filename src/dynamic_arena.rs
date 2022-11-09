@@ -11,7 +11,7 @@ pub struct DynamicArena {
 use std::{alloc::Layout, ptr, slice};
 
 use crate::errors::AllocError;
-use crate::platform::{Functions, Platform};
+use crate::platform::{PlatformFunctions, Platform};
 
 impl DynamicArena {
     // TODO: more documentation with details on page sizes, and difference between
@@ -217,7 +217,7 @@ mod tests {
     use std::mem::size_of;
 
     use super::*;
-    use crate::platform::{Functions, Platform};
+    use crate::platform::{PlatformFunctions, Platform};
     use crate::{
         errors::AllocError,
         test_common::{

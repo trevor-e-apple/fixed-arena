@@ -1,9 +1,9 @@
 use libc;
 use std::ffi::c_void;
 
-use crate::platform::{Functions, Platform};
+use crate::platform::{PlatformFunctions, Platform};
 
-impl Functions for Platform {
+impl PlatformFunctions for Platform {
     fn get_page_size() -> usize {
         unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
     }

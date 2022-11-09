@@ -8,9 +8,9 @@ use windows::Win32::System::{
     SystemInformation::{GetSystemInfo, SYSTEM_INFO},
 };
 
-use crate::platform::{Functions, Platform};
+use crate::platform::{PlatformFunctions, Platform};
 
-impl Functions for Platform {
+impl PlatformFunctions for Platform {
     fn get_page_size() -> usize {
         let page_size: u32;
         unsafe {
