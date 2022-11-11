@@ -171,7 +171,7 @@ impl FixedArena {
 
     /// Allocates an array of type `T` with count elements. The initial value of
     /// the elements in the array is 0.
-    /// alloc_zeroed_array performs a cast from `usize` to `isize`, and will 
+    /// alloc_zeroed_array performs a cast from `usize` to `isize`, and will
     /// panic if the count value does not fit in `isize`
     /// # Arguments
     /// * `T` - Generic. The type to allocate
@@ -380,7 +380,7 @@ mod tests {
             }
         }
 
-        /// Test allocating multiple different structures with different 
+        /// Test allocating multiple different structures with different
         /// alignments
         #[test]
         fn mixed_allocation() {
@@ -532,7 +532,7 @@ mod tests {
                 Err(err) => assert_eq!(err, AllocError::AtCapacity),
             };
         }
-        
+
         /// Helper function for the mixed allocation test        
         fn alloc_and_check<T>(arena: &FixedArena, val: T) -> &mut T
         where
@@ -720,7 +720,6 @@ mod tests {
             alloc_multiple_arrays_common(test_array_one, test_array_two);
         }
 
-
         /// Test allocating a single uninitialized array to capacity
         #[test]
         fn alloc_unitialized_array_to_capacity() {
@@ -744,7 +743,7 @@ mod tests {
             alloc_array_over_capacity_common(result);
         }
 
-        /// Test allocating an uninitialized array to capacity and then 
+        /// Test allocating an uninitialized array to capacity and then
         /// resetting. Then allocate another unitialized array.
         #[test]
         fn alloc_unitialized_array_to_capacity_reset() {
@@ -935,4 +934,3 @@ mod tests {
         }
     }
 }
-
