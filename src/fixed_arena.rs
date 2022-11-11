@@ -15,9 +15,17 @@ pub struct FixedArena {
 
 // TODO: inline functions?
 impl FixedArena {
-    // TODO: document me
+    /// Make a new fixed arena with a specified capacity and alignment
+    /// Uses the default system allocator to get the memory
+    /// # Arguments
+    /// * `capacity` - The capacity of the arena in bytes
+    /// * `align` - The alginment to use for the arena
+    /// # Examples
+    /// ```
+    /// # use tea_fixed_arena::fixed_arena::FixedArena;
+    /// let arena = FixedArena::with_capacity(4096, 4);
+    /// ```
     pub fn with_capacity(capacity: usize, align: usize) -> FixedArena {
-        // TODO: remove magic alignment
         let layout = Layout::from_size_align(capacity, align)
             .expect("Bad arguments for layout");
         let base = unsafe { alloc(layout) };
@@ -29,7 +37,8 @@ impl FixedArena {
         }
     }
 
-    // TODO: document me
+    /// Get a pointer to available memory and update the used attribute
+    /// Use a layout to determine how much to update the used attribute by
     fn get_alloc_ptr_with_layout(
         &self,
         layout: Layout,
@@ -45,14 +54,28 @@ impl FixedArena {
         }
     }
 
-    // TODO: document me
+    /// Get a pointer to available memory and update the used attribute
+    /// Takes a type as an argument instead of a layout
     fn get_alloc_ptr<T>(&self) -> Result<*mut u8, AllocError> {
         let layout = Layout::new::<T>();
         let pointer = self.get_alloc_ptr_with_layout(layout)?;
         Ok(pointer)
     }
 
-    // TODO: document me
+    /// Allocate and initialize a single instance of a data structure.
+    /// # Arguments
+    /// * `val` - The value to initialize the instance to.
+    /// # Examples
+    /// ```
+    /// # use tea_fixed_arena::fixed_arena::FixedArena;
+    /// let arena = FixedArena::with_capacity(4096, 4);
+    /// match arena.alloc(5){
+    ///     Ok(result) => {
+    ///         assert_eq!(*result, 5);
+    ///     },
+    ///     Err(_) => assert!(false)
+    /// };
+    /// ```
     pub fn alloc<T>(&self, val: T) -> Result<&mut T, AllocError> {
         let pointer = self.get_alloc_ptr::<T>()?;
         unsafe {
@@ -62,7 +85,21 @@ impl FixedArena {
         }
     }
 
-    // TODO: document me
+    /// Allocate and initialize a single instance of a data structure. It is
+    /// initialized with a value of 0
+    /// # Arguments
+    /// * `T` - A generic. The type to allocate.
+    /// # Examples
+    /// ```
+    /// # use tea_fixed_arena::fixed_arena::FixedArena;
+    /// let arena = FixedArena::with_capacity(4096, 4);
+    /// match arena.alloc_zeroed::<i32>(){
+    ///     Ok(result) => {
+    ///         assert_eq!(*result, 0);
+    ///     },
+    ///     Err(_) => assert!(false)
+    /// };
+    /// ```
     pub fn alloc_zeroed<T>(&self) -> Result<&mut T, AllocError> {
         let pointer = self.get_alloc_ptr::<T>()?;
         unsafe {
@@ -72,9 +109,27 @@ impl FixedArena {
         }
     }
 
-    // TODO: document me
-    /// alloc_array does perform a cast from usize to isize, and will panic if
-    /// the coutn value does not fit in isize
+    /// Allocates an array of type T with count elements. The initial value of
+    /// the elements in the array is val.
+    /// alloc_array performs a cast from usize to isize, and will panic if
+    /// the count value does not fit in isize
+    /// # Arguments
+    /// * `val` - the value to initialize the elements in the array to
+    /// * `count` - the number of elements to allocate for the array
+    /// # Examples
+    /// ```
+    /// # use tea_fixed_arena::fixed_arena::FixedArena;
+    /// let arena = FixedArena::with_capacity(4096, 4);
+    /// match arena.alloc_array(1, 5){
+    ///     Ok(result) => {
+    ///         assert_eq!(result.len(), 5);
+    ///         for element in result {
+    ///             assert_eq!(*element, 1);
+    ///         }
+    ///     },
+    ///     Err(_) => assert!(false)
+    /// };
+    /// ```
     pub fn alloc_array<T>(
         &self,
         val: T,
